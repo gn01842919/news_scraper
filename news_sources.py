@@ -6,22 +6,25 @@ To-Do:
     2. Yahoo stock rss
 """
 
-news_sources = {}
+news_source_registry = {}
 
 
 def register_news_source(target_class):
-    news_sources[target_class.__name__] = target_class
+    news_source_registry[target_class.__name__] = target_class
 
 
 class NewsMeta(type):
     def __new__(meta, name, bases, class_dict):
         cls = type.__new__(meta, name, bases, class_dict)
-        if cls.__name__ != 'NewsSource':
+
+        # Do not register the abstract base class
+        if bases != (object,):
             register_news_source(cls)
+
         return cls
 
 
-class NewsSource(metaclass=NewsMeta):
+class NewsSource(object, metaclass=NewsMeta):
 
     def __init__(self):
         raise NotImplementedError("Do not instantiate this class!")
@@ -48,7 +51,7 @@ class GoogleNews(NewsSource):
     def _add_rss_link_for_strange_format_ones(self):
 
         other_rss_map = {
-            'Taiwan': 'NATION.zh-TW_tw/%E5%8F%B0%E7%81%A3?ned=tw&hl=zh-tw&gl=TW',
+            'Taiwan': self.base_url + 'NATION.zh-TW_tw/%E5%8F%B0%E7%81%A3?ned=tw&hl=zh-tw&gl=TW',
         }
         self.categories.extend(key for key in other_rss_map.keys())
         self.rss_map.update(other_rss_map)
@@ -74,7 +77,7 @@ class YahooNews(NewsSource):
 
 if __name__ == '__main__':
 
-    print(news_sources)
+    print(news_source_registry)
 
     google_news = GoogleNews()
     print(google_news.get_feed_object('WORLD'))

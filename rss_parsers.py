@@ -3,9 +3,23 @@ from dateutil import parser as date_parser
 from datetime import datetime
 from collections import namedtuple
 from bs4 import BeautifulSoup
+from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
 
 
 NewsEntry = namedtuple("NewsEntry", "title description link published_time")
+
+
+def _check_url_is_valid(url):
+    try:
+        with urlopen(url):
+            pass
+    except HTTPError as e:
+        print("[-] HTTP Error %d for '%s'" % (e.code, url))
+        raise
+    except URLError as e:
+        print("[-] URL Error [%s] for '%s'" % (e.reason, url))
+        raise
 
 
 class MyFeed:
@@ -36,8 +50,17 @@ class MyFeed:
 
 
 class RSSFeedParser:
+
     @classmethod
     def parse_feed(cls, url):
+
+        print('=-=-=-=-=-=-=-=')
+        print(cls.__name__)
+        print(url)
+        print('=-=-=-=-=-=-=-=')
+
+        _check_url_is_valid(url)
+
         feed = feedparser.parse(url)
 
         title = cls._get_title_from_feed(feed.feed)
