@@ -14,7 +14,17 @@ To-Do:
     2. Yahoo stock rss
 """
 
+news_sources = {}
+
 NewsEntry = namedtuple("NewsEntry", "title description link published_time")
+
+
+def register_news_source(target_class):
+    news_sources[target_class.__name__] = target_class
+
+
+class NewsCollector:
+    pass
 
 
 class MyFeed:
@@ -24,7 +34,7 @@ class MyFeed:
         self.link = link
         self.language = language
         self.published_time = published_time
-        self.entries = entries  # Reference to a list of named_tuples
+        self.entries = entries  # Reference to a list of NewsEntry
 
     def __str__(self):
         return (
@@ -89,14 +99,14 @@ class RSSFeedParser:
 
     @staticmethod
     def _get_time_from_feed(feed):
-        # Using datetime.datetime(*feed.feed.published_parsed[:-3]) can not
-        # preserve original timezone information
-        # So use dateutil.parser().parse(feed.feed.published) instead
-        # Reference:
-        #     https://stackoverflow.com/questions/20867795/python-how-to-get-timezone-from-rss-feed
-
         try:
+            # Using datetime.datetime(*feed.feed.published_parsed[:-3]) can not
+            # preserve original timezone information
+            # So use dateutil.parser().parse(feed.feed.published) instead
+            # Reference:
+            #     https://stackoverflow.com/questions/20867795/python-how-to-get-timezone-from-rss-feed
             published_time = date_parser.parse(feed.published)
+
         except AttributeError:
             # feed.published is not provided
             published_time = datetime.utcnow()
@@ -140,7 +150,28 @@ class YahooFeedParser(RSSFeedParser):
     pass
 
 
-class GoogleNews:
+class Meta(type):
+    def __new__(meta, name, bases, class_dict):
+        cls = type.__new__(meta, name, bases, class_dict)
+        if cls.__name__ != 'NewsSource':
+            register_news_source(cls)
+        return cls
+
+
+class NewsSource(metaclass=Meta):
+
+    def __init__(self):
+        raise NotImplementedError("Do not instantiate this class!")
+
+    def _get_rss_url(self, category):
+        return self.rss_map[category]
+
+    def get_feed_object(self, category):
+        rss_url = self._get_rss_url(category)
+        return self.feed_parser.parse_feed(rss_url)
+
+
+class GoogleNews(NewsSource):
     def __init__(self):
         self.base_url = 'https://news.google.com/news/rss/headlines/section/topic/'
         self.categories = ['WORLD', 'NATION', 'BUSINESS', 'TECHNOLOGY', 'ENTERTAINMENT', 'SPORTS', 'SCIENCE', 'HEALTH']
@@ -149,6 +180,7 @@ class GoogleNews:
 
         self.rss_map = {category: self.base_url + category + params for category in self.categories}
         self._add_rss_link_for_strange_format_ones()
+        self.feed_parser = GoogleFeedParser
 
     def _add_rss_link_for_strange_format_ones(self):
 
@@ -158,21 +190,15 @@ class GoogleNews:
         self.categories.extend(key for key in other_rss_map.keys())
         self.rss_map.update(other_rss_map)
 
-    def get_rss_url(self, category):
-        return self.rss_map[category]
 
-    def get_feed_object(self, category):
-        rss_url = self.get_rss_url(category)
-        return GoogleFeedParser.parse_feed(rss_url)
-
-
-class YahooNews:
+class YahooNews(NewsSource):
 
     def __init__(self):
         self.base_url = 'https://tw.news.yahoo.com/rss/'
         self.categories = ['politics', 'tech', 'health', 'intl']
         self.rss_map = {category: self.base_url + category for category in self.categories}
         self._add_stock_rss_links()
+        self.feed_parser = YahooFeedParser
 
     def _add_stock_rss_links(self):
         '''
@@ -182,15 +208,10 @@ class YahooNews:
         '''
         pass
 
-    def get_rss_url(self, category):
-        return self.rss_map[category]
-
-    def get_feed_object(self, category):
-        rss_url = self.get_rss_url(category)
-        return YahooFeedParser.parse_feed(rss_url)
-
 
 if __name__ == '__main__':
+
+    print(news_sources)
 
     google_news = GoogleNews()
     print(google_news.get_feed_object('WORLD'))
