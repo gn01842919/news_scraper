@@ -1,10 +1,5 @@
 from rss_parsers import GoogleFeedParser, YahooFeedParser
 
-"""
-To-Do:
-    1. write unit tests
-    2. Yahoo stock rss
-"""
 
 news_source_registry = {}
 
@@ -17,7 +12,7 @@ class NewsMeta(type):
     def __new__(meta, name, bases, class_dict):
         cls = type.__new__(meta, name, bases, class_dict)
 
-        # Do not register the abstract base class
+        # Should not register the abstract base class (NewsSource)
         if bases != (object,):
             register_news_source(cls)
 

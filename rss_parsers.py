@@ -33,14 +33,14 @@ class MyFeed:
 
     def __str__(self):
         return (
-            "++++++++++++++++++++\n"
-            "[Title]    : {}\n"
-            "[Subtitle] : {}\n"
-            "[Link]     : {}\n"
-            "[Language] : {}\n"
-            "[Published]: {}\n"
-            "[Entries #]: {}\n"
-            "++++++++++++++++++++\n"
+            "====================================\n"
+            "[Title]       : {}\n"
+            "[Subtitle]    : {}\n"
+            "[Link]        : {}\n"
+            "[Language]    : {}\n"
+            "[Published]   : {}\n"
+            "[# of Entries]: {}\n"
+            "====================================\n"
             .format(
                 self.title, self.subtitle, self.link,
                 self.language, self.published_time,
@@ -53,11 +53,6 @@ class RSSFeedParser:
 
     @classmethod
     def parse_feed(cls, url):
-
-        print('=-=-=-=-=-=-=-=')
-        print(cls.__name__)
-        print(url)
-        print('=-=-=-=-=-=-=-=')
 
         _check_url_is_valid(url)
 
@@ -136,7 +131,8 @@ class GoogleFeedParser(RSSFeedParser):
 
             bsobj = BeautifulSoup(feed.description, "html.parser")
             news_sources_li = bsobj.findAll("li")
-            # <li>
+            # Example:
+            #   <li>
             #     <a href="http://www.cna.com.tw/news/aopl/201802110062-1.aspx" target="_blank">
             #          以色列攻擊敘利亞境內伊朗目標美力挺
             #     </a>
@@ -144,7 +140,7 @@ class GoogleFeedParser(RSSFeedParser):
             #     <font color="#6F6F6F">
             #         中央社即時新聞
             #     </font>
-            # </li>
+            #   </li>
             for src in news_sources_li:
                 news_title = src.a.get_text()
                 news_source = src.font.get_text()

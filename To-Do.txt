@@ -1,0 +1,168 @@
+
+- 多一個項目名稱叫做 "Content"
+  是把新聞來源連結的內容 (例如自由時報的報導) 讀出來存在這變數裡面
+
+- 考慮要不要加入 logging
+    *** 得先研究一下
+
+- 撰寫 Unit Test
+    *** 還是得研究一下怎麼做比較好
+
+- 暫時先把輸出寫到檔案裡，大致上沒問題後再改用資料庫
+
+- Rule 要長什麼形式??
+
+- 如何用 RULE 來分類新聞?
+    * 關鍵字在標題 ==> 高分     +10
+    * 關鍵字在新聞 link 到的內容裡面 ==> 數次數，每次 +1
+
+
+- Tag:
+    * Google 以及 YAHOO 給的分類
+    * 用 RULE 抓出來的，也給予獨特的分類?
+          意思是， RULE 在抓取的時候，就依據特徵，給他一個 tag
+
+- 另一個屬性叫做 Source:
+    (可能不用，反正從網址就看的出來)
+    Yahoo / Google
+
+- 加入 Yahoo Stock RSS 來源
+
+-     # 關鍵字在 Description ==> 數次數  每次 +1
+      # 這我看先不要，Yahoo 各家新聞來源的 Description 很不統一，
+        有些把完整內文都放進去，有些只放媒體名稱
+
+
+=======================================================
+一些非常雜亂不打算整理的筆記
+=======================================================
+
+
+
+
+
+建一個 map，可以知道 Google 或 Yahoo 的分類
+額外獨立成一個檔案，當作設定檔
+
+
+news_source = {
+    "Yahoo": {
+
+    },
+    "Google": {
+
+    },
+}
+
+
+
+
+
+Google News ==> RSS
+
+pip install feedparser
+
+
+http://www.idiotinside.com/2017/06/08/parse-rss-feed-with-python/
+http://blog.topspeedsnail.com/archives/8156
+
+Google 新聞 RSS:
+    https://news.google.com/news/rss/headlines/section/topic/WORLD?ned=zh-tw_tw&hl=zh-tw&gl=TW
+    https://news.google.com/news/rss/headlines/section/topic/NATION?ned=zh-tw_tw&hl=zh-tw&gl=TW
+    https://news.google.com/news/rss/headlines/section/topic/BUSINESS?ned=zh-tw_tw&hl=zh-tw&gl=TW
+    https://news.google.com/news/rss/headlines/section/topic/TECHNOLOGY?ned=zh-tw_tw&hl=zh-tw&gl=TW
+    https://news.google.com/news/rss/headlines/section/topic/ENTERTAINMENT?ned=zh-tw_tw&hl=zh-tw&gl=TW
+    https://news.google.com/news/rss/headlines/section/topic/SPORTS?ned=zh-tw_tw&hl=zh-tw&gl=TW
+    https://news.google.com/news/rss/headlines/section/topic/SCIENCE?ned=zh-tw_tw&hl=zh-tw&gl=TW
+    https://news.google.com/news/rss/headlines/section/topic/HEALTH?ned=zh-tw_tw&hl=zh-tw&gl=TW
+
+    https://news.google.com/news/rss/headlines/section/topic/NATION.zh-TW_tw/%E5%8F%B0%E7%81%A3?ned=tw&hl=zh-tw&gl=TW
+
+YAHOO 有提供很多RSS: https://tw.info.yahoo.com/rss/
+
+我比較感興趣的有
+
+
+https://tw.news.yahoo.com/rss/politics
+https://tw.news.yahoo.com/rss/tech
+https://tw.news.yahoo.com/rss/health
+https://tw.news.yahoo.com/rss/intl
+
+
+股票相關  (之後再加入，都有他們的名稱，可直接當類別，或是爬出他們的名字)
+
+    http://tw.stock.yahoo.com/rss/url/d/e/N2.html
+    https://tw.stock.yahoo.com/rss/url/d/e/N4.html
+    https://tw.stock.yahoo.com/rss/url/d/e/R1.html
+    https://tw.stock.yahoo.com/rss/url/d/e/N5.html
+    ..... 還有非常多
+
+
+
+
+
+
+rss
+    Channel
+        Title   ==> feeds['feed']['title']
+        link    ==> feeds['feed']['title']
+        description  => feeds.feed.subtitle
+        language
+        lastbuilddate
+        item
+            title
+                新聞標題
+            description
+                描述
+            link
+        item
+            ....
+        item
+            ....
+
+len(feeds['entries'])   50
+feeds['entries'][0]['title']
+print(feeds.entries[0]['link'])
+
+Yahoo
+
+rss
+    Channel
+        Title
+        link
+        description
+        language
+        lastbuilddate
+        item
+            title
+                新聞標題
+            description
+                描述
+            link
+        item
+            ....
+        item
+            ....
+
+==========
+
+Google
+
+rss
+    channel
+        generator
+        title
+        link
+        language
+        pubdate
+        image
+            title
+            link
+        description
+        item
+            title
+            link
+            category
+            pubdate
+            description
+                這裡面有 html存在

@@ -3,11 +3,13 @@ from urllib.error import HTTPError, URLError
 
 
 def retrieve_registered_news_by_rss():
+
+    # Reset the output file
+    with open("output.txt", "w") as f:
+        f.write('')
+
     for class_name, NewsSourceClass in news_source_registry.items():
         news_src = NewsSourceClass()
-        print('-' * 10)
-        print(class_name)
-        print('-' * 10)
 
         for category in news_src.categories:
             try:
@@ -17,11 +19,22 @@ def retrieve_registered_news_by_rss():
                 # To-Do: Maybe the url should be logged.
                 continue
 
-            print(feed_obj)
-            for entry in feed_obj.entries:
-                print(entry.title)
+            with open("output.txt", "a") as f:
+                print(feed_obj, file=f)
+                for entry in feed_obj.entries:
+                    info = (
+                        "     --------------------\n"
+                        "     [Title]: {}\n"
+                        "     [Link] : {}\n"
+                        "     [Desc] : {}\n"
+                        "     [Time] : {}\n"
+                        "     --------------------\n"
+                        .format(
+                            entry.title, entry.link, entry.description, entry.published_time
+                        )
+                    )
+                    print(info, file=f)
 
 
 if __name__ == '__main__':
-    print(news_source_registry)
     retrieve_registered_news_by_rss()
