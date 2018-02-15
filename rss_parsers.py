@@ -131,7 +131,6 @@ class GoogleFeedParser(RSSFeedParser):
             # So let's parse it
 
             output = ""
-
             bsobj = BeautifulSoup(feed.description, "html.parser")
             news_sources_li = bsobj.findAll("li")
             # Example:
@@ -147,6 +146,17 @@ class GoogleFeedParser(RSSFeedParser):
             for src in news_sources_li:
                 news_title = src.a.get_text()
                 news_source = src.font.get_text()
-                output += "[{}] {}\n".format(news_source, news_title)
+                try:
+                    news_link = src.a["href"]
+                except AttributeError:
+                    continue
+
+                # ### The format of local news source are different
+                # ### Do it someday....
+                # html = urlopen(news_link)
+                # inner_bsobj = BeautifulSoup(html, "html.parser")
+                # # have to grab the news content and return it as discription
+
+                output += "[{}] {}\n{}\n".format(news_source, news_title, news_link)
 
             return output.strip()

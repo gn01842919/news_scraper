@@ -57,7 +57,8 @@ class YahooNews(NewsSource):
 
     def __init__(self):
         self.base_url = 'https://tw.news.yahoo.com/rss/'
-        self.categories = ['politics', 'tech', 'health', 'intl']
+        # self.categories = ['politics', 'tech', 'health', 'intl']
+        self.categories = ['politics', 'tech']
         self.rss_map = {category: self.base_url + category for category in self.categories}
         self._add_stock_rss_links()
         self.feed_parser = YahooFeedParser
