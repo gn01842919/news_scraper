@@ -1,4 +1,5 @@
 import feedparser
+import logging
 from dateutil import parser as date_parser
 from datetime import datetime
 from collections import namedtuple
@@ -11,14 +12,16 @@ NewsEntry = namedtuple("NewsEntry", "title description link published_time")
 
 
 def _check_url_is_valid(url):
+    logger = logging.getLogger('invalid_rss_urls')
+
     try:
         with urlopen(url):
             pass
     except HTTPError as e:
-        print("[-] HTTP Error %d for '%s'" % (e.code, url))
+        logger.warning("HTTP Error %d for '%s'" % (e.code, url))
         raise
     except URLError as e:
-        print("[-] URL Error [%s] for '%s'" % (e.reason, url))
+        logger.warning("URL Error [%s] for '%s'" % (e.reason, url))
         raise
 
 

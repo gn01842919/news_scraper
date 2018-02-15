@@ -1,5 +1,34 @@
 from news_sources import news_source_registry
 from urllib.error import HTTPError, URLError
+import logging
+import os
+
+default_log_format = '[%(levelname)s] (%(asctime)s) %(message)s'
+
+
+def setup_logger(
+        name,
+        level=logging.INFO,
+        logfile=None,
+        to_console=True,
+        log_format=default_log_format):
+
+    formatter = logging.Formatter(log_format)
+    logger = logging.getLogger(name)
+
+    logger.setLevel(level)
+
+    if logfile:
+        file_handler = logging.FileHandler(logfile)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+    if to_console:
+        console = logging.StreamHandler()
+        console.setFormatter(formatter)
+        logger.addHandler(console)
+
+    return logger
 
 
 def retrieve_registered_news_by_rss():
@@ -37,4 +66,11 @@ def retrieve_registered_news_by_rss():
 
 
 if __name__ == '__main__':
+
+    # set logger for HTTP and URL errors
+    http_error_log_path = os.path.join(os.getcwd(), 'RSS_URL_Problems.log')
+    setup_logger('invalid_rss_urls', logfile=http_error_log_path, to_console=True)
+
+    setup_logger('standard_output', to_console=True, level=logging.DEBUG)
+
     retrieve_registered_news_by_rss()

@@ -35,7 +35,8 @@ class NewsSource(object, metaclass=NewsMeta):
 class GoogleNews(NewsSource):
     def __init__(self):
         self.base_url = 'https://news.google.com/news/rss/headlines/section/topic/'
-        self.categories = ['WORLD', 'NATION', 'BUSINESS', 'TECHNOLOGY', 'ENTERTAINMENT', 'SPORTS', 'SCIENCE', 'HEALTH']
+        # self.categories = ['WORLD', 'NATION', 'BUSINESS', 'TECHNOLOGY', 'ENTERTAINMENT', 'SPORTS', 'SCIENCE', 'HEALTH']
+        self.categories = ['WORLD']  # Use a shorter list for test
 
         params = '?ned=zh-tw_tw&hl=zh-tw&gl=TW'
 
