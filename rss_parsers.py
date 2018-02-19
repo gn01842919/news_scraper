@@ -61,6 +61,13 @@ class RSSFeedParser:
 
         feed = feedparser.parse(url)
 
+        # # Used to generate input data for mock in unit test
+        # filename = url.replace(':', '.').replace('/', '_').replace('?', '-').replace('&', '-').replace('=', '_').replace('%', '_')
+        # print(repr(filename))
+        # with open(filename + '.txt', 'wb') as f:
+        #     import pickle
+        #     pickle.dump(feed, f)
+
         title = cls._get_title_from_feed(feed.feed)
         subtitle = cls._get_subtitle_from_feed(feed.feed)
         link = cls._get_link_from_feed(feed.feed)
