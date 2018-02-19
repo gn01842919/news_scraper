@@ -1,4 +1,8 @@
 
+scraper 是正確的， scrapper 是誤拼，有空時改過來
+
+====================
+
 pip install nose
 執行 unittest:
     nosetests
