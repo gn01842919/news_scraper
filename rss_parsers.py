@@ -1,5 +1,5 @@
 import feedparser
-import logging
+# import logging
 from dateutil import parser as date_parser
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -9,16 +9,15 @@ from news_data import NewsRSSEntry
 
 
 def _check_url_is_valid(url):
-    logger = logging.getLogger('invalid_rss_urls')
-
+    # logger = logging.getLogger('invalid_rss_urls')
     try:
         with urlopen(url):
             pass
     except HTTPError as e:
-        logger.warning("HTTP Error %d for '%s'" % (e.code, url))
+        # logger.warning("HTTP Error %d for '%s'" % (e.code, url))
         raise
     except URLError as e:
-        logger.warning("URL Error [%s] for '%s'" % (e.reason, url))
+        # logger.warning("URL Error [%s] for '%s'" % (e.reason, url))
         raise
 
 
