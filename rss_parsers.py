@@ -5,6 +5,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 from urllib.error import HTTPError, URLError
+from news_data import NewsRSSEntry
 
 
 def _check_url_is_valid(url):
@@ -33,87 +34,6 @@ def _get_news_source_website_name(title):
         return 'others'
 
 
-class NewsEntry:
-    def __init__(self, title, description, link, published_time, source, category=None, tags=None):
-        self.title = title
-        self.description = description
-        self.link = link
-        self.published_time = published_time
-        self.source = source
-        self.rule_score_map = {}  # rule ==> score, will be set in news_collector.py
-        self.tags = tags.copy() if tags else set()  # .copy() -> shallow copy
-
-        # Category defined by RSS feed link
-        if category:
-            self.tags.add(category)
-
-    def set_rules(self, rules):
-        for rule in rules:
-            score = self._compute_score_by_rule(rule)
-            self.rule_score_map[rule] = score
-            self._set_tags_from_rules(rule, score)
-
-    @property
-    def total_score(self):
-        if not self.rule_score_map:
-            logger = logging.getLogger('standard_output')
-            logger.warning('No scraping rule set for %s' % str(self))
-
-        return sum(score for score in self.rule_score_map.values() if score > 0)
-
-    def _set_tags_from_rules(self, rule, score):
-        if score > 0:
-            self.tags.update(rule.tags)  # shallow copy
-
-    def _compute_score_by_rule(self, rule):
-        """
-        Score:
-            < 0 ==> excluded     (by rule.excluded_keywords)
-            > 0 ==> of interest  (by rule.included_keywords)
-            = 0 ==> others (not of interest)
-        """
-        score = 0
-
-        for keyword in rule.excluded_keywords:
-            if keyword in self.title:
-                score -= 1
-
-        # Skip 'included_keywords' if this news should be excluded
-        if score >= 0:
-            for keyword in rule.included_keywords:
-                # Should change to analyse the content of the news
-                if keyword in self.title:
-                    score += 1
-
-        return score
-
-    def __repr__(self):
-        return (
-            "====== <NewsEntry object at {}> ======\n"
-            "  [Title]       : {}\n"
-            "  [Description] : {}\n"
-            "  [Link]        : {}\n"
-            "  [Published]   : {}\n"
-            "  [Source]      : {}\n"
-            "  [Tags]        : {}\n"
-            "  [Rules]       : {}\n"
-            "==================================================\n"
-            .format(
-                hex(id(self)),
-                self.title,
-                self.description,
-                self.link,
-                self.published_time,
-                self.source,
-                self.tags,
-                {str(rule): score for rule, score in self.rule_score_map.items()}
-            )
-        )
-
-    def __str__(self):
-        return "<NewsEntry '%s'>" % self.title
-
-
 class MyFeed:
     def __init__(self, title, subtitle, link, language, published_time, entries):
         self.title = title
@@ -121,7 +41,7 @@ class MyFeed:
         self.link = link
         self.language = language
         self.published_time = published_time
-        self.entries = entries  # A tuple of NewsEntry
+        self.entries = entries  # A tuple of NewsRSSEntry
 
     def __repr__(self):
         return (
@@ -181,7 +101,7 @@ class RSSFeedParser:
             published_time = cls._get_time_from_feed(entry)
             news_source = _get_news_source_website_name(feed_link)
 
-            yield NewsEntry(title, description, link, published_time, news_source, category)
+            yield NewsRSSEntry(title, description, link, published_time, news_source, category)
 
     @staticmethod
     def _get_title_from_feed(feed):
