@@ -13,12 +13,16 @@ class ScrapingRule:
         self.tags = set()
 
     def __repr__(self):
-        output = "---------------\n"
+        output = "-------- Scraping Rule --------\n"
         output += "[name]: %s\n" % self.name
         output += "[Include]: %s\n" % self.included_keywords
         output += "[Exclude]: %s\n" % self.excluded_keywords
         output += "[Tags]: %s\n" % self.tags
+        output += "------------------------------\n"
         return output
+
+    def __str__(self):
+        return "<ScrapingRule '%s'>" % self.name
 
 
 def _extract_name_from_rule_statement(line, syntax):
@@ -106,12 +110,12 @@ def read_rules_from_file(filename):
             "Warning: There are no scraping rules"
         )
 
-    return rules
+    return rules.values()
 
 
 if __name__ == '__main__':
 
     rules = read_rules_from_file('test.rule')
 
-    for rule in rules.values():
+    for rule in rules:
         print(repr(rule))

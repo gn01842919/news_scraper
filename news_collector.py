@@ -1,7 +1,8 @@
-from news_sources import news_source_registry
-from urllib.error import HTTPError, URLError
 import logging
 import os
+from urllib.error import HTTPError, URLError
+from news_sources import news_source_registry
+from scraping_rules_creator import read_rules_from_file
 
 default_log_format = '[%(levelname)s] (%(asctime)s) %(message)s'
 
@@ -33,36 +34,23 @@ def setup_logger(
 
 def retrieve_registered_news_by_rss():
 
-    # Reset the output file
-    with open("output.txt", "w") as f:
-        f.write('')
-
     for class_name, NewsSourceClass in news_source_registry.items():
         news_src = NewsSourceClass()
-
         for category in news_src.categories:
             try:
                 feed_obj = news_src.get_feed_object(category)
             except (HTTPError, URLError):
-                # The rss link is invalid or has problems
-                # To-Do: Maybe the url should be logged.
+                # These errors are logged in rss_parsers.py
                 continue
 
-            with open("output.txt", "a") as f:
-                print(feed_obj, file=f)
-                for entry in feed_obj.entries:
-                    info = (
-                        "     --------------------\n"
-                        "     [Title]: {}\n"
-                        "     [Link] : {}\n"
-                        "     [Desc] : {}\n"
-                        "     [Time] : {}\n"
-                        "     --------------------\n"
-                        .format(
-                            entry.title, entry.link, entry.description, entry.published_time
-                        )
-                    )
-                    print(info, file=f)
+            yield feed_obj
+
+
+def get_news_of_insterest_by_scraping_rules(news_entries, rules):
+
+    for news in news_entries:
+        if news.total_score > 0:
+            yield news
 
 
 if __name__ == '__main__':
@@ -70,7 +58,21 @@ if __name__ == '__main__':
     # set logger for HTTP and URL errors
     http_error_log_path = os.path.join(os.getcwd(), 'RSS_URL_Problems.log')
     setup_logger('invalid_rss_urls', logfile=http_error_log_path, to_console=True)
-
     setup_logger('standard_output', to_console=True, level=logging.DEBUG)
 
-    retrieve_registered_news_by_rss()
+    feeds = retrieve_registered_news_by_rss()
+
+    news_entries = tuple(entry for feed in feeds for entry in feed.entries)
+
+    scraping_rules = read_rules_from_file('test.rule')
+
+    for entry in news_entries:
+        entry.set_rules(scraping_rules)
+
+    target_news = tuple(get_news_of_insterest_by_scraping_rules(news_entries, scraping_rules))
+
+    stdout_logger = logging.getLogger('standard_output')
+    stdout_logger.info(
+        'Record %d news out of total %d news.' % (len(target_news), len(news_entries))
+    )
+

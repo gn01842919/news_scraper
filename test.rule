@@ -1,21 +1,17 @@
-RULE first rule
-    INCLUDE Keyword1
-    EXCLUDE A long keyword
-    TAG category one
-    TAG Category2
+RULE 自強號動態
+    INCLUDE 自強號
+    INCLUDE 延誤
+    INCLUDE 台鐵
+
+    EXCLUDE 狗狗
+
+    TAG 交通
+    TAG 上班 遲到
 END-OF-RULE
 
-RULE second_rule
-    INCLUDE Keyword2
-    INCLUDE Keyword1
-    EXCLUDE A long keyword
-    EXCLUDE KW4
-    TAG C3
-END-OF-RULE
-
-# Comment
 
 
 RULE
-    INCLUDE Keyword3
+    INCLUDE 總統
+    INCLUDE 中華民國
 END-OF-RULE
