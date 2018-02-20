@@ -26,7 +26,7 @@ class NewsSource(object, metaclass=NewsMeta):
 
     def get_feed_object(self, category):
         rss_url = self._get_rss_url(category)
-        return self.feed_parser.parse_feed(rss_url)
+        return self.feed_parser.parse_feed(rss_url, category)
 
     def _get_rss_url(self, category):
         return self.rss_map[category]

@@ -11,7 +11,8 @@ END-OF-RULE
 
 
 
-RULE
+RULE 中華民國總統
     INCLUDE 總統
     INCLUDE 中華民國
+    TAG 台灣政治
 END-OF-RULE

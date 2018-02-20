@@ -2,7 +2,6 @@ import feedparser
 import logging
 from dateutil import parser as date_parser
 from datetime import datetime
-from collections import namedtuple
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 from urllib.error import HTTPError, URLError
@@ -35,19 +34,24 @@ def _get_news_source_website_name(title):
 
 
 class NewsEntry:
-    def __init__(self, title, description, link, published_time, source):
+    def __init__(self, title, description, link, published_time, source, category=None, tags=None):
         self.title = title
         self.description = description
         self.link = link
         self.published_time = published_time
         self.source = source
-        self.tags = set()
         self.rule_score_map = {}  # rule ==> score, will be set in news_collector.py
+        self.tags = tags.copy() if tags else set()  # .copy() -> shallow copy
+
+        # Category defined by RSS feed link
+        if category:
+            self.tags.add(category)
 
     def set_rules(self, rules):
         for rule in rules:
             score = self._compute_score_by_rule(rule)
             self.rule_score_map[rule] = score
+            self._set_tags_from_rules(rule, score)
 
     @property
     def total_score(self):
@@ -56,6 +60,10 @@ class NewsEntry:
             logger.warning('No scraping rule set for %s' % str(self))
 
         return sum(score for score in self.rule_score_map.values() if score > 0)
+
+    def _set_tags_from_rules(self, rule, score):
+        if score > 0:
+            self.tags.update(rule.tags)  # shallow copy
 
     def _compute_score_by_rule(self, rule):
         """
@@ -82,23 +90,23 @@ class NewsEntry:
     def __repr__(self):
         return (
             "====== <NewsEntry object at {}> ======\n"
-            "[Title]       : {}\n"
-            "[Description] : {}\n"
-            "[Link]        : {}\n"
-            "[Published]   : {}\n"
-            "[Source]      : {}\n"
-            "[Tags]        : {}\n"
-            "[Rules]       : {}\n"
+            "  [Title]       : {}\n"
+            "  [Description] : {}\n"
+            "  [Link]        : {}\n"
+            "  [Published]   : {}\n"
+            "  [Source]      : {}\n"
+            "  [Tags]        : {}\n"
+            "  [Rules]       : {}\n"
             "==================================================\n"
             .format(
                 hex(id(self)),
                 self.title,
-                self.subtitle,
+                self.description,
                 self.link,
                 self.published_time,
                 self.source,
                 self.tags,
-                self.rules,
+                {str(rule): score for rule, score in self.rule_score_map.items()}
             )
         )
 
@@ -140,7 +148,7 @@ class MyFeed:
 class RSSFeedParser:
 
     @classmethod
-    def parse_feed(cls, url):
+    def parse_feed(cls, url, category=None):
 
         _check_url_is_valid(url)
 
@@ -161,11 +169,11 @@ class RSSFeedParser:
         language = cls._get_language_from_feed(feed.feed)
         published_time = cls._get_time_from_feed(feed.feed)
 
-        entries = tuple(cls._get_entries_from_feed(feed.entries, feed_link))
+        entries = tuple(cls._get_entries_from_feed(feed.entries, feed_link, category))
         return MyFeed(title, subtitle, feed_link, language, published_time, entries)
 
     @classmethod
-    def _get_entries_from_feed(cls, entries, feed_link):
+    def _get_entries_from_feed(cls, entries, feed_link, category):
         for entry in entries:
             title = cls._get_title_from_feed(entry)
             description = cls._get_subtitle_from_feed(entry)
@@ -173,7 +181,7 @@ class RSSFeedParser:
             published_time = cls._get_time_from_feed(entry)
             news_source = _get_news_source_website_name(feed_link)
 
-            yield NewsEntry(title, description, link, published_time, news_source)
+            yield NewsEntry(title, description, link, published_time, news_source, category)
 
     @staticmethod
     def _get_title_from_feed(feed):

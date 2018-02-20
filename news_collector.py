@@ -76,3 +76,5 @@ if __name__ == '__main__':
         'Record %d news out of total %d news.' % (len(target_news), len(news_entries))
     )
 
+    for news in target_news:
+        print(repr(news))
