@@ -36,7 +36,8 @@ def read_rules_from_file(filename):
     with open(filename, 'r') as f:
 
         curr_rule = None
-        for line in f.readlines():
+        # for line in f.readlines():
+        for line in f:
             line = line.strip()
 
             if not line or line.startswith('#'):

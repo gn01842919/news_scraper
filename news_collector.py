@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from urllib.error import HTTPError, URLError
 from concurrent import futures
 from news_sources import news_source_registry
@@ -35,6 +36,11 @@ def setup_logger(
     return logger
 
 
+def get_news_entries(num_of_workers, worker_timeout):
+    feeds = retrieve_registered_news_by_rss(num_of_workers, worker_timeout)
+    return tuple(entry for feed in feeds for entry in feed.entries)
+
+
 def retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
     """Retrieve RSS news by a thread pool
     """
@@ -68,11 +74,6 @@ def retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
                 yield feed_obj
 
 
-def get_news_entries(num_of_workers, worker_timeout):
-    feeds = retrieve_registered_news_by_rss(num_of_workers, worker_timeout)
-    return tuple(entry for feed in feeds for entry in feed.entries)
-
-
 def set_rules_to_news_entry(news_entries, scraping_rules):
     for entry in news_entries:
         entry.set_rules(scraping_rules)
@@ -82,6 +83,55 @@ def get_target_news_by_scraping_rules(news_entries, scraping_rules):
     for news in news_entries:
         if news.total_score > 0:
             yield news
+
+
+def get_local_news_sources_list_from_file(filename):
+    try:
+        with open(filename, 'r') as f:
+            for line in f:
+                if line:
+                    yield line.rstrip()
+    except FileNotFoundError as e:
+        # Create an empty file
+        open(filename, 'a').close()
+        return ()
+
+
+def _extract_news_source_from_url(link):
+    base_url_pattern = re.compile('^(https?://[a-zA-Z0-9.-]+/)')
+    try:
+        return base_url_pattern.match(link).group()
+    except AttributeError as e:
+        logging.getLogger('standard_output').warning(
+            'News link [{}] does not match base_url_pattern.'.format(link)
+        )
+
+
+def update_local_news_sources_list(news_entries, filename):
+    """
+        Google News collects news from local news sources, such as:
+          - [自由時報電子報]
+            http://news.ltn.com.tw/
+          - [新頭殼]
+            https://newtalk.tw/
+          - [中央廣播電台]
+            https://news.rti.org.tw/
+
+        This function maintains a list of these local news sources.
+    """
+
+    local_news_sources = set(get_local_news_sources_list_from_file(filename))
+
+    new_local_sources = set()
+
+    for news in news_entries:
+        local_source = _extract_news_source_from_url(news.link)
+        if local_source not in local_news_sources:
+            new_local_sources.add(local_source)
+
+    with open(filename, 'a') as f:
+        for source in new_local_sources:
+            f.write(source + '\n')
 
 
 def main():
@@ -101,6 +151,8 @@ def main():
         worker_timeout=RSS_WORKER_TIMEOUT
     )
     set_rules_to_news_entry(news_entries, scraping_rules)
+
+    update_local_news_sources_list(news_entries, 'local_news_sources.txt')
 
     # Filter the news by the rules (So target_news is the news of interest)
     target_news = tuple(get_target_news_by_scraping_rules(news_entries, scraping_rules))
