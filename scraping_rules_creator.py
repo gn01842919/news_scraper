@@ -1,3 +1,7 @@
+"""
+"""
+
+# Standard library
 import datetime
 
 
@@ -5,7 +9,7 @@ class ScrapingRuleFormatError(Exception):
     pass
 
 
-class ScrapingRule:
+class ScrapingRule(object):
     def __init__(self, name):
         self.name = name
         self.included_keywords = set()
@@ -14,7 +18,7 @@ class ScrapingRule:
 
     def __repr__(self):
         output = "-------- Scraping Rule --------\n"
-        output += "[name]: %s\n" % self.name
+        output += "[Name]: %s\n" % self.name
         output += "[Include]: %s\n" % self.included_keywords
         output += "[Exclude]: %s\n" % self.excluded_keywords
         output += "[Tags]: %s\n" % self.tags

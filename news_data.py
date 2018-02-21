@@ -1,4 +1,8 @@
-class NewsRSSEntry:
+"""
+"""
+
+
+class NewsRSSEntry(object):
     def __init__(self, title, description, link, published_time, source, category=None, tags=None):
         self.title = title
         self.description = description

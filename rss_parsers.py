@@ -1,23 +1,26 @@
-import feedparser
-# import logging
-from dateutil import parser as date_parser
+"""
+"""
+
+# Standard library
 from datetime import datetime
-from bs4 import BeautifulSoup
-from urllib.request import urlopen
 from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
+# PyPI
+import feedparser
+from bs4 import BeautifulSoup
+from dateutil import parser as date_parser
+# Local modules
 from news_data import NewsRSSEntry
 
 
 def _check_url_is_valid(url):
-    # logger = logging.getLogger('invalid_rss_urls')
     try:
         with urlopen(url):
             pass
+    # The following Errors will be logged and handled in upper levels
     except HTTPError as e:
-        # logger.warning("HTTP Error %d for '%s'" % (e.code, url))
         raise
     except URLError as e:
-        # logger.warning("URL Error [%s] for '%s'" % (e.reason, url))
         raise
 
 
@@ -33,7 +36,7 @@ def _get_news_source_website_name(title):
         return 'others'
 
 
-class MyFeed:
+class MyFeed(object):
     def __init__(self, title, subtitle, link, language, published_time, entries):
         self.title = title
         self.subtitle = subtitle
@@ -64,7 +67,7 @@ class MyFeed:
         )
 
 
-class RSSFeedParser:
+class RSSFeedParser(object):
 
     @classmethod
     def parse_feed(cls, url, category=None):

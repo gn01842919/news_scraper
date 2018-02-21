@@ -1,8 +1,13 @@
+"""
+"""
+
+# Standard library
 import logging
 import os
 import re
 from urllib.error import HTTPError, URLError
 from concurrent import futures
+# Local modules
 from news_sources import news_source_registry
 from scraping_rules_creator import read_rules_from_file
 
