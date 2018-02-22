@@ -1,35 +1,43 @@
-https://star.ettoday.net/
-http://news.ltn.com.tw/
-http://ent.ltn.com.tw/
-https://www.thenewslens.com/
-https://www1.hkej.com/
-http://www.setn.com/
-https://news.ftv.com.tw/
-http://video.ltn.com.tw/
-http://www.cna.com.tw/
-https://www.ithome.com.tw/
-https://www.ettoday.net/
-https://udn.com/
-https://www.everydayhealth.com.tw/
-http://www.chinatimes.com/
-https://health.ettoday.net/
-http://news.sina.com.tw/
-http://www.ntdtv.com/
-http://news.cts.com.tw/
-https://stars.udn.com/
-http://www.idn.com.tw/
-https://technews.tw/
-http://www.storm.mg/
-https://tw.news.yahoo.com/
-https://times.hinet.net/
-https://unwire.hk/
-https://www.moneydj.com/
-https://sports.ettoday.net/
-https://news.pts.org.tw/
-https://www.xcnnews.com/
-https://newtalk.tw/
-http://sports.ltn.com.tw/
-http://m.ltn.com.tw/
-https://www.healthnews.com.tw/
-https://news.tvbs.com.tw/
-https://www.nownews.com/
+{
+ "tw.news.yahoo.com": 59,
+ "news.ltn.com.tw": 23,
+ "cna.com.tw": 17,
+ "udn.com": 16,
+ "ettoday.net": 15,
+ "sports.ltn.com.tw": 8,
+ "ent.ltn.com.tw": 7,
+ "star.ettoday.net": 6,
+ "news.rti.org.tw": 5,
+ "news.housefun.com.tw": 3,
+ "chinatimes.com": 3,
+ "nownews.com": 2,
+ "health.ettoday.net": 2,
+ "cdnews.com.tw": 2,
+ "news.pts.org.tw": 2,
+ "storm.mg": 2,
+ "stars.udn.com": 2,
+ "3c.ltn.com.tw": 2,
+ "technews.tw": 2,
+ "cardu.com.tw": 1,
+ "thenewslens.com": 1,
+ "uho.com.tw": 1,
+ "tw.youcard.yahoo.com": 1,
+ "times.hinet.net": 1,
+ "ntdtv.com": 1,
+ "hk01.com": 1,
+ "m.ltn.com.tw": 1,
+ "everydayhealth.com.tw": 1,
+ "media.pbplus.me": 1,
+ "news.sina.com.tw": 1,
+ "healthnews.com.tw": 1,
+ "ntdtv.com.tw": 1,
+ "eprice.com.tw": 1,
+ "4gamers.com.tw": 1,
+ "cnews.com.tw": 1,
+ "epochtimes.com": 1,
+ "xcnnews.com": 1,
+ "ealth.com.tw": 1,
+ "sports.ettoday.net": 1,
+ "auto.ltn.com.tw": 1,
+ "istyle.ltn.com.tw": 1
+}
