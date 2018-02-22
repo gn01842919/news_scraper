@@ -2,8 +2,8 @@
 """
 
 # Standard library
+import logging
 from datetime import datetime
-from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 # PyPI
 import feedparser
@@ -13,18 +13,14 @@ from dateutil import parser as date_parser
 from news_data import NewsRSSEntry
 
 
-def _check_url_is_valid(url):
-    try:
-        with urlopen(url):
-            pass
-    # The following Errors will be logged and handled in upper levels
-    except HTTPError as e:
-        raise
-    except URLError as e:
-        raise
+def _check_rss_url_is_valid(url):
+    # 'feedparser' does not raise exceptions when RSS url returns 404 Error
+    # So use urlopen() to force raising HTTPError and URLError
+    with urlopen(url):
+        pass
 
 
-def _get_news_source_website_name(title):
+def _get_news_source_website_name_by_feed_title(title):
 
     title = title.lower()
 
@@ -67,23 +63,29 @@ class MyFeed(object):
         )
 
 
+def _pickle_feed_object_to_file_for_unit_tests(url, feed):
+    # Used to generate input data for mock in unit test
+    import time.strftime
+    import pickle
+
+    filename = url.replace(':', '.').replace('/', '_').replace('?', '-')
+    filename = filename.replace('&', '-').replace('=', '_').replace('%', '_')
+
+    logging.info("Creating [%s] which contains pickle object of RSS feed.")
+    with open(filename + time.strftime('-%m%d') + '.txt', 'wb') as f:
+        pickle.dump(feed, f)
+
+
 class RSSFeedParser(object):
 
     @classmethod
     def parse_feed(cls, url, category=None):
 
-        _check_url_is_valid(url)
+        _check_rss_url_is_valid(url)
 
         feed = feedparser.parse(url)
 
-        # # Used to generate input data for mock in unit test
-        # filename = url.replace(':', '.').replace('/', '_')
-        #            .replace('?', '-').replace('&', '-')
-        #            .replace('=', '_').replace('%', '_')
-        # print(repr(filename))
-        # with open(filename + '.txt', 'wb') as f:
-        #     import pickle
-        #     pickle.dump(feed, f)
+        # _pickle_feed_object_to_file_for_unit_tests(url, feed)
 
         title = cls._get_title_from_feed(feed.feed)
         subtitle = cls._get_subtitle_from_feed(feed.feed)
@@ -101,7 +103,7 @@ class RSSFeedParser(object):
             description = cls._get_subtitle_from_feed(entry)
             link = cls._get_link_from_feed(entry)
             published_time = cls._get_time_from_feed(entry)
-            news_source = _get_news_source_website_name(feed_link)
+            news_source = _get_news_source_website_name_by_feed_title(feed_link)
 
             yield NewsRSSEntry(title, description, link, published_time, news_source, category)
 

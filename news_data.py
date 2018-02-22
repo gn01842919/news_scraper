@@ -1,5 +1,17 @@
 """
 """
+import scraper_utils
+
+
+def set_rules_to_news_entries(news_entries, scraping_rules):
+    for entry in news_entries:
+        entry.set_rules(scraping_rules)
+
+
+def get_target_news_by_scraping_rules(news_entries, scraping_rules):
+    for news in news_entries:
+        if news.total_score > 0:
+            yield news
 
 
 class NewsRSSEntry(object):
@@ -25,9 +37,7 @@ class NewsRSSEntry(object):
     @property
     def total_score(self):
         if not self.rule_score_map:
-            import logging
-            logger = logging.getLogger('standard_output')
-            logger.warning('No scraping rule set for %s' % str(self))
+            scraper_utils.log_warning('No scraping rule set for %s' % str(self))
 
         return sum(score for score in self.rule_score_map.values() if score > 0)
 

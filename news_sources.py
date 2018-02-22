@@ -2,7 +2,8 @@
 """
 
 # Local modules
-from rss_parsers import GoogleFeedParser, YahooFeedParser
+import scraper_utils
+from rss_feed_parsers import GoogleFeedParser, YahooFeedParser
 
 
 news_source_registry = {}
@@ -26,7 +27,9 @@ class NewsMeta(type):
 class NewsSource(object, metaclass=NewsMeta):
 
     def __init__(self):
-        raise NotImplementedError("Do not instantiate this class!")
+        msg = "Do not instantiate class '%s'!" % self.__class__.__name__
+        scraper_utils.log_warning(msg, is_error=True)
+        raise NotImplementedError(msg)
 
     def get_feed_object(self, category):
         rss_url = self._get_rss_url(category)

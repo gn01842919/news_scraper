@@ -1,9 +1,9 @@
 
 - local_news_parser.py 可能會 Raise HTTPError, URLError，呼叫者要處理
 
-- 把 standard out 的 Logger 拆分成 error_log 與一般的
-  然後 raise RuntimeError 的部分，考慮記錄下來
-  或是弄一個自己的 Base Exception，一律記綠下來
+- Google News 的 Description 改成 Local 新聞內容
+
+- 將 Local News Source 註冊起來，以便對應，看 Google News 的需求
 
 ===================
 

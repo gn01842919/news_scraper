@@ -2,3 +2,4 @@ __pycache__
 *[.]log
 output.txt
 local_news_sources-tmp.txt
+local_news_sources.txt

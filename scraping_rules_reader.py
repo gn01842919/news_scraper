@@ -3,9 +3,11 @@
 
 # Standard library
 import datetime
+# Local modules
+from scraper_utils import NewsScrapperError
 
 
-class ScrapingRuleFormatError(Exception):
+class ScrapingRuleFormatError(NewsScrapperError):
     pass
 
 
