@@ -3,10 +3,12 @@
 
 # Standard library
 import logging
+import json
 import os
 import re
-from urllib.error import HTTPError, URLError
 from concurrent import futures
+from collections import OrderedDict
+from urllib.error import HTTPError, URLError
 # Local modules
 from news_sources import news_source_registry
 from scraping_rules_creator import read_rules_from_file
@@ -90,22 +92,23 @@ def get_target_news_by_scraping_rules(news_entries, scraping_rules):
             yield news
 
 
-def get_local_news_sources_list_from_file(filename):
+def read_local_news_sources_list_from_file(filename):
     try:
         with open(filename, 'r') as f:
-            for line in f:
-                if line:
-                    yield line.rstrip()
+            return json.loads(f.read())
     except FileNotFoundError as e:
         # Create an empty file
         open(filename, 'a').close()
-        return ()
+        return {}
+    except json.decoder.JSONDecodeError as e:
+        logging.getLogger('standard_output').exception('Fail to read from file as JSON')
+        return {}
 
 
-def _extract_news_source_from_url(link):
-    base_url_pattern = re.compile('^(https?://[a-zA-Z0-9.-]+/)')
+def extract_news_source_from_url(link):
+    base_url_pattern = re.compile('^https?://([a-zA-Z0-9.-]+)/')
     try:
-        return base_url_pattern.match(link).group()
+        return base_url_pattern.match(link).group(1).lstrip('www.')
     except AttributeError as e:
         logging.getLogger('standard_output').warning(
             'News link [{}] does not match base_url_pattern.'.format(link)
@@ -125,18 +128,28 @@ def update_local_news_sources_list(news_entries, filename):
         This function maintains a list of these local news sources.
     """
 
-    local_news_sources = set(get_local_news_sources_list_from_file(filename))
+    # local_news_sources = set(get_local_news_sources_list_from_file(filename))
+    local_news_sources = read_local_news_sources_list_from_file(filename)
 
-    new_local_sources = set()
+    print(local_news_sources)
 
     for news in news_entries:
-        local_source = _extract_news_source_from_url(news.link)
-        if local_source not in local_news_sources:
-            new_local_sources.add(local_source)
+        news_hostname = extract_news_source_from_url(news.link)
 
-    with open(filename, 'a') as f:
-        for source in new_local_sources:
-            f.write(source + '\n')
+        if news_hostname in local_news_sources:
+            # print('news_hostname [%s] already exists.' % news_hostname)
+            local_news_sources[news_hostname] += 1
+        else:
+            local_news_sources[news_hostname] = 1
+
+    # Sort the dict "local_news_sources" by values
+    local_news_sources = OrderedDict(
+        sorted(local_news_sources.items(), key=lambda x: x[1], reverse=True)
+    )
+
+    with open(filename, 'w') as f:
+
+        f.write(json.dumps(local_news_sources, indent=True))
 
 
 def main():
