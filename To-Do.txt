@@ -3,8 +3,13 @@
   如果在 _get_entries_from_feed() 裡面用 timer 計算時間，有時看起來像是有加速，但有時候看起來又完全沒加速
   而整個程式的執行時間，完全沒有加速!!!!
   我猜測是因為，我抓取 RSS Feed 時就用了一層 ThreadPool，然後在 Thread 中再次產生 thread pool
-  也許因為不行這樣?
+  也許因為這樣不行?
+  ==> 應該真的是這個原因，我把 RSS 那層改成 sequential，造成產生 description 所需的時間，從 20 秒上下大幅縮減為 3 秒上下，雖然總花費時間還是增加了。
+
   ==> 試著改用 Process Pool
+  ==> 不對，Process Pool 指的是從 CPU Level 的平行處理，不是用 Process 取代 thread
+      真的要做的話，可能要用 subprocess
+  ==> 或是把兩層的結構割開，一個一個來
 
 - 神秘問題:
     1. 為什麼 許多 Warning 都會跳兩次一模一樣的內容? 究竟哪裡重複紀錄了?

@@ -23,6 +23,20 @@ def get_news_entries(num_of_workers, worker_timeout):
     return tuple(entry for feed in feeds for entry in feed.entries)
 
 
+def retrieve_registered_news_by_rss_sequentially():
+
+    for class_name, NewsSourceClass in news_source_registry.items():
+        news_src = NewsSourceClass()
+        for category in news_src.categories:
+            try:
+                feed_obj = news_src.get_feed_object(category)
+            except (HTTPError, URLError):
+                # These errors are logged in rss_parsers.py
+                continue
+
+            yield feed_obj
+
+
 def retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
     """Retrieve RSS news by a thread pool
     """
