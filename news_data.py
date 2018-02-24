@@ -69,7 +69,7 @@ class NewsRSSEntry(object):
 
     def __repr__(self):
         return (
-            "==== <NewsRSSEntry object at {}> ====\n"
+            "  -- <NewsRSSEntry object at {}> --\n"
             "  [Title]       : {}\n"
             "  [Description] : {}\n"
             "  [Link]        : {}\n"
@@ -77,7 +77,7 @@ class NewsRSSEntry(object):
             "  [Source]      : {}\n"
             "  [Tags]        : {}\n"
             "  [Rules]       : {}\n"
-            "=================================================\n"
+            "  ---------------------------------\n"
             .format(
                 hex(id(self)),
                 self.title,

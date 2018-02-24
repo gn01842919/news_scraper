@@ -1,6 +1,14 @@
-- [ERROR] [2018-02-22 22:40:37,403)] Please set up 'error_log' logger first.
-  這樣感覺不好，既然名稱打算寫死了，那就該寫死到底?
-  不對，沒事，這個錯誤訊息是寫給我自己除錯時看的，實際使用時並不會發生
+
+- 抓取 description 的部分採用並時處理，總時間竟然沒有加速?????
+  如果在 _get_entries_from_feed() 裡面用 timer 計算時間，有時看起來像是有加速，但有時候看起來又完全沒加速
+  而整個程式的執行時間，完全沒有加速!!!!
+  我猜測是因為，我抓取 RSS Feed 時就用了一層 ThreadPool，然後在 Thread 中再次產生 thread pool
+  也許因為不行這樣?
+  ==> 試著改用 Process Pool
+
+- 神秘問題:
+    1. 為什麼 許多 Warning 都會跳兩次一模一樣的內容? 究竟哪裡重複紀錄了?
+    2. [WARNING] [2018-02-24 15:31:47,688)] HTTP Error 403 for RSS feed 'https://news.google.com/news/rss/headlines/section/topic/HEALTH?ned=zh-tw_tw&hl=zh-tw&gl=TW'
 
 - local_news_parser.py 可能會 Raise HTTPError, URLError，呼叫者要處理
 

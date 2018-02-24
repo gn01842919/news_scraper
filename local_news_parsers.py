@@ -22,9 +22,7 @@ parsers_registry = {}
 
 
 def _register_local_source(name, cls):
-
     global parsers_registry
-
     parsers_registry[name] = cls
 
 

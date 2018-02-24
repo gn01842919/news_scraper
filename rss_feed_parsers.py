@@ -1,9 +1,10 @@
 """
 """
-
 # Standard library
 import logging
+from concurrent import futures
 from datetime import datetime
+from timeit import default_timer as timer
 from urllib.request import urlopen
 # PyPI
 import feedparser
@@ -13,6 +14,10 @@ from dateutil import parser as date_parser
 import local_news_parsers
 import scraper_utils
 from news_data import NewsRSSEntry
+
+
+MAX_WORKERS = 10
+HTML_PARSER_WORKER_TIMEOUT = 60
 
 
 def _check_rss_url_is_valid(url):
@@ -80,6 +85,8 @@ def _pickle_feed_object_to_file_for_unit_tests(url, feed):
 
 class RSSFeedParser(object):
 
+    _description_depends_on_local_news_sources = False
+
     @classmethod
     def parse_feed(cls, url, category=None):
 
@@ -91,23 +98,101 @@ class RSSFeedParser(object):
 
         title = cls._get_title(feed.feed)
         subtitle = cls._get_subtitle(feed.feed)
-        feed_link = cls._get_link(feed.feed)
         language = cls._get_language(feed.feed)
         published_time = cls._get_time(feed.feed)
+        # feed_link may have stupid errors, such as:
+        # https://news.google.coms/rss/headlines/section/topic/NATION.zh-TW_tw/%E5%8F%B0%E7%81%A3?ned=tw&hl=zh-tw&gl=TW
+        # So... do not use it.......
+        # feed_link = cls._get_link(feed.feed)
 
-        entries = tuple(cls._get_entries_from_feed(feed.entries, feed_link, category))
-        return MyFeed(title, subtitle, feed_link, language, published_time, entries)
+        entries = tuple(
+            cls._get_entries_from_feed(feed.entries, url, category)
+        )
+
+        return MyFeed(title, subtitle, url, language, published_time, entries)
 
     @classmethod
     def _get_entries_from_feed(cls, entries, feed_link, category):
+        """
+        Note that _get_description(entry) may take time for some news sources
+        such as Google News because it has to acquire the news content from
+        one of the local news sources.
+
+        Therefore, retrieve entries in parallel.
+        """
+        start_time = timer()
+        with futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            future_url_map = {}
+
+            for entry in entries:
+                title = cls._get_title(entry)
+                link = cls._get_link(entry)
+                published_time = cls._get_time(entry)
+                news_source = _get_news_source_website_name_by_feed_title(feed_link)
+
+                tmp_news_entry = NewsRSSEntry(
+                    title, "", link, published_time, news_source, category
+                )
+
+                # For description
+                future_obj = executor.submit(cls._get_description, entry)
+                future_url_map[future_obj] = tmp_news_entry
+
+            if future_url_map:
+                logging.info(
+                    "Processing %d news entries for RSS [%s] '%s' concurrently..."
+                    % (len(entries), category, feed_link)
+                )
+
+                done_iter = futures.as_completed(
+                    future_url_map,
+                    timeout=HTML_PARSER_WORKER_TIMEOUT
+                )
+                try:
+                    for future_obj in done_iter:
+                        description = future_obj.result()
+
+                        news_rss_entry = future_url_map[future_obj]
+                        news_rss_entry.description = description
+
+                        yield news_rss_entry
+
+                except futures.TimeoutError as e:
+                    news_rss_entry = future_url_map[future_obj]
+                    scraper_utils.log_warning(
+                        "Timeout in _get_entries_from_feed() when processing the news entry:\n"
+                        "%s"
+                        "\tRSS [%s] '%s'\n"
+                        "\tError Message: %s\n"
+                        % (repr(news_rss_entry), category, feed_link, str(e))
+                    )
+
+                logging.info(
+                    "Done in %f seconds: %d news entries for RSS [%s] '%s'"
+                    % (timer() - start_time, len(entries), category, feed_link)
+                )
+
+    @classmethod
+    def _get_entries_from_feed_sequentially(cls, entries, feed_link, category):
+        logging.info(
+            "<Sequentially> Processing %d news entries for RSS [%s] '%s' concurrently..."
+            % (len(entries), category, feed_link)
+        )
+        start_time = timer()
+
         for entry in entries:
             title = cls._get_title(entry)
-            description = cls._get_description(entry)
             link = cls._get_link(entry)
             published_time = cls._get_time(entry)
             news_source = _get_news_source_website_name_by_feed_title(feed_link)
+            description = cls._get_description(entry)
 
             yield NewsRSSEntry(title, description, link, published_time, news_source, category)
+
+        logging.info(
+            "<Sequentially> Done in %f seconds: %d news entries for RSS [%s] '%s'"
+            % (timer() - start_time, len(entries), category, feed_link)
+        )
 
     @staticmethod
     def _get_title(feed):
@@ -199,7 +284,7 @@ class GoogleFeedParser(RSSFeedParser):
 
                     return "(Extracted from '%s')\n%s" % (
                         news_source,
-                        html_parser.get_news_content(news_link)
+                        html_parser.get_news_content(news_link).strip()
                     )
 
                 else:
