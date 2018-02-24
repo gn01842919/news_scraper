@@ -8,16 +8,19 @@ from urllib.error import HTTPError, URLError
 # Local modules
 import news_data
 import scraper_utils
-from local_news_parser import update_local_news_sources_list
+from local_news_parsers import update_local_news_sources_list
 from news_sources import news_source_registry
 from scraping_rules_reader import read_rules_from_file
 
 MAX_WORKERS = 10
-RSS_WORKER_TIMEOUT = 10
+RSS_WORKER_TIMEOUT = 50
 
 
 def get_news_entries(num_of_workers, worker_timeout):
     feeds = retrieve_registered_news_by_rss(num_of_workers, worker_timeout)
+
+    # Handle news description for Google concurrently here
+
     return tuple(entry for feed in feeds for entry in feed.entries)
 
 
@@ -36,7 +39,7 @@ def retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
                 future_obj = executor.submit(news_src.get_feed_object, category)
                 future_url_map[future_obj] = news_src._get_rss_url(category)
 
-        logging.info("There are %d RSS feeds to retrieve." % len(future_url_map))
+        logging.info("Retrieving %d RSS feeds concurrently." % len(future_url_map))
 
         done_iter = futures.as_completed(future_url_map, timeout=worker_timeout)
 
@@ -57,7 +60,7 @@ def main():
     # Set up loggers
     scraper_utils.setup_logger('error_log', to_console=True, level=logging.WARNING)
     # root logger
-    logging.basicConfig(level=logging.INFO, format=scraper_utils.default_log_format)
+    logging.basicConfig(level=logging.DEBUG, format=scraper_utils.default_log_format)
 
     # Get scraping rules
     scraping_rules = read_rules_from_file('test.rule')
@@ -69,6 +72,10 @@ def main():
     # Recored local news sources for future development
     logging.info("Updating 'local_news_sources.txt'...")
     update_local_news_sources_list(news_entries, 'local_news_sources.txt')
+
+    with open('output.txt', 'w') as f:
+        for news in news_entries:
+            print(repr(news), file=f)
 
     # Filter the news by the rules (So target_news is the news of interest)
     target_news = tuple(

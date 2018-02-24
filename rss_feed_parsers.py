@@ -10,6 +10,8 @@ import feedparser
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 # Local modules
+import local_news_parsers
+import scraper_utils
 from news_data import NewsRSSEntry
 
 
@@ -87,11 +89,11 @@ class RSSFeedParser(object):
 
         # _pickle_feed_object_to_file_for_unit_tests(url, feed)
 
-        title = cls._get_title_from_feed(feed.feed)
-        subtitle = cls._get_subtitle_from_feed(feed.feed)
-        feed_link = cls._get_link_from_feed(feed.feed)
-        language = cls._get_language_from_feed(feed.feed)
-        published_time = cls._get_time_from_feed(feed.feed)
+        title = cls._get_title(feed.feed)
+        subtitle = cls._get_subtitle(feed.feed)
+        feed_link = cls._get_link(feed.feed)
+        language = cls._get_language(feed.feed)
+        published_time = cls._get_time(feed.feed)
 
         entries = tuple(cls._get_entries_from_feed(feed.entries, feed_link, category))
         return MyFeed(title, subtitle, feed_link, language, published_time, entries)
@@ -99,35 +101,39 @@ class RSSFeedParser(object):
     @classmethod
     def _get_entries_from_feed(cls, entries, feed_link, category):
         for entry in entries:
-            title = cls._get_title_from_feed(entry)
-            description = cls._get_subtitle_from_feed(entry)
-            link = cls._get_link_from_feed(entry)
-            published_time = cls._get_time_from_feed(entry)
+            title = cls._get_title(entry)
+            description = cls._get_description(entry)
+            link = cls._get_link(entry)
+            published_time = cls._get_time(entry)
             news_source = _get_news_source_website_name_by_feed_title(feed_link)
 
             yield NewsRSSEntry(title, description, link, published_time, news_source, category)
 
     @staticmethod
-    def _get_title_from_feed(feed):
+    def _get_title(feed):
         return feed.title
 
-    @staticmethod
-    def _get_subtitle_from_feed(feed):
+    @classmethod
+    def _get_subtitle(cls, feed):
         try:
             return feed.subtitle.strip()
         except AttributeError:
-            return feed.description.strip()
+            return cls._get_description(feed)
 
     @staticmethod
-    def _get_link_from_feed(feed):
+    def _get_description(feed):
+        return feed.description.strip()
+
+    @staticmethod
+    def _get_link(feed):
         return feed.link
 
     @staticmethod
-    def _get_language_from_feed(feed):
+    def _get_language(feed):
         return feed.language
 
     @staticmethod
-    def _get_time_from_feed(feed):
+    def _get_time(feed):
         try:
             # Using datetime.datetime(*feed.feed.published_parsed[:-3]) can not
             # preserve original timezone information
@@ -150,41 +156,68 @@ class YahooFeedParser(RSSFeedParser):
 class GoogleFeedParser(RSSFeedParser):
 
     @staticmethod
-    def _get_subtitle_from_feed(feed):
+    def _get_description(feed):
 
-        try:
-            return feed.subtitle
-        except AttributeError:
-            # feed.description is a list of same news from different sources
-            # So let's parse it
+        # feed.description is a list of same news from different local sources
+        # Get the real news content from one of the local sources
 
-            output = ""
-            bsobj = BeautifulSoup(feed.description, "html.parser")
-            news_sources_li = bsobj.findAll("li")
-            # Example:
-            #   <li>
-            #     <a href="http://www.cna.com.tw/news/aopl/201802110062-1.aspx" target="_blank">
-            #          以色列攻擊敘利亞境內伊朗目標美力挺
-            #     </a>
-            #     &nbsp;&nbsp;
-            #     <font color="#6F6F6F">
-            #         中央社即時新聞
-            #     </font>
-            #   </li>
-            for src in news_sources_li:
-                news_title = src.a.get_text()
-                news_source = src.font.get_text()
-                try:
-                    news_link = src.a["href"]
-                except AttributeError:
-                    continue
+        bsobj = BeautifulSoup(feed.description, "html.parser")
+        local_news_sources_li = bsobj.findAll("li")
+        # Example:
+        #   <li>
+        #     <a href="http://www.cna.com.tw/news/aopl/201802110062-1.aspx" target="_blank">
+        #          以色列攻擊敘利亞境內伊朗目標美力挺
+        #     </a>
+        #     &nbsp;&nbsp;
+        #     <font color="#6F6F6F">
+        #         中央社即時新聞
+        #     </font>
+        #   </li>
 
-                # ### The format of local news source are different
-                # ### Do it someday....
-                # html = urlopen(news_link)
-                # inner_bsobj = BeautifulSoup(html, "html.parser")
-                # # have to grab the news content and return it as discription
+        # If no proper parser is found for all local news sources,
+        # one of the sources in candidates will be parsed by default_parser.
+        candidates = []
+        html_parser = None
 
-                output += "[{}] {}\n{}\n".format(news_source, news_title, news_link)
+        for local_src in local_news_sources_li:
+            news_title = local_src.a.get_text()
+            news_source = local_src.font.get_text()
+            try:
+                news_link = local_src.a["href"]
+            except AttributeError:
+                continue
 
-            return output.strip()
+            news_domain_name = scraper_utils.extract_domain_name_from_url(news_link)
+            parsers_registry = local_news_parsers.parsers_registry
+
+            for local_source in parsers_registry:
+                # Decide which parser should be used to parse the news content.
+                # Note that domain_name is generally longer than local_source.
+                if local_source in news_domain_name:
+                    # A proper parser (html_parser) is found.
+                    html_parser = parsers_registry[local_source]()
+
+                    return "(Extracted from '%s')\n%s" % (
+                        news_source,
+                        html_parser.get_news_content(news_link)
+                    )
+
+                else:
+                    # No proper parser is found.
+                    # Add this news_source to candidates
+                    candidates.append([news_title, news_source, news_link])
+
+        # No proper parser if found for any of local news sources
+        # So use the default parser to parse the first local news source
+        if candidates:
+            html_parser = local_news_parsers.DefaultHtmlNewsParser()
+            news_title, news_source, news_link = candidates[0]
+
+            return "(Extracted from '%s' by default parser)\n%s" % (
+                news_source,
+                html_parser.get_news_content(news_link)
+            )
+        else:
+            msg = "No candidate local news source for GoogleNews '%s'.\n" % feed.title
+            msg += "\tThe raw description is: {}" % feed.description
+            raise scraper_utils.NewsScraperError(msg)

@@ -9,8 +9,9 @@ from rss_feed_parsers import GoogleFeedParser, YahooFeedParser
 news_source_registry = {}
 
 
-def register_news_source(target_class):
-    news_source_registry[target_class.__name__] = target_class
+def _register_news_source(cls):
+    global news_source_registry
+    news_source_registry[cls.__name__] = cls
 
 
 class NewsMeta(type):
@@ -19,7 +20,7 @@ class NewsMeta(type):
 
         # Should not register the abstract base class (NewsSource)
         if bases != (object,):
-            register_news_source(cls)
+            _register_news_source(cls)
 
         return cls
 

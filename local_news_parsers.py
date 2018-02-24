@@ -18,14 +18,22 @@ from bs4 import BeautifulSoup
 # Local modules
 import scraper_utils
 
+parsers_registry = {}
 
-def _register_local_source(self, url):
-    pass
+
+def _register_local_source(name, cls):
+
+    global parsers_registry
+
+    parsers_registry[name] = cls
 
 
 def update_local_news_sources_list(news_entries, filename):
     """
-        This function maintains a list of local news sources.
+        This function maintains a list of possible local news sources.
+        Note that this is not necessary.
+        This functionality is to know whether there are common local news websites
+        that are not yet implemented.
     """
 
     local_news_sources = _read_local_news_sources_list_from_file(filename)
@@ -61,13 +69,26 @@ def _read_local_news_sources_list_from_file(filename):
         return {}
 
 
-class HtmlNewsParser(object):
+class LocalNewsMeta(type):
+    def __new__(meta, name, bases, class_dict):
+        cls = type.__new__(meta, name, bases, class_dict)
 
-    def __init__(self):
-        self.source_base_urls = []
+        if bases != (object,):
+            # Skip the (abstract) base class (HtmlNewsParser)
+            for domain_name in cls.source_base_urls:
+                _register_local_source(domain_name, cls)
+
+        return cls
+
+
+class HtmlNewsParser(object, metaclass=LocalNewsMeta):
+    """
+    Should not be instanciated directly.
+    """
+    source_base_urls = []
 
     def get_news_content(
-            self, url, ancestor_tag=None, dict_ancestor_attr=None, raise_error=False
+        self, url, ancestor_tag=None, dict_ancestor_attr=None, raise_error=False
     ):
 
         if not ancestor_tag:
@@ -82,7 +103,7 @@ class HtmlNewsParser(object):
                 raise  # So that the caller can handle the AttributeError
 
             msg = (
-                "Try to get news content by <p> tags inside <%s> fro [%s], but fail. "
+                "Try to get news content by <p> tags inside <%s> from [%s], but fail. "
                 "Maybe the html content of the local news source has been changed."
                 % (ancestor_tag, url)
             )
@@ -138,10 +159,7 @@ class HtmlNewsParser(object):
     def _get_beautifulsoup_obj(self, url):
 
         # check whether the URL belong to this local news source
-        if not self._check_url(url):
-            raise RuntimeError(
-                "URL [%s] does not match any of base_urls: %s" % (url, self.source_base_urls)
-            )
+        self._check_url(url)
 
         # May raise HTTPError, URLError
         # Should be handled by caller
@@ -150,30 +168,52 @@ class HtmlNewsParser(object):
         return bsobj
 
     def _check_url(self, url):
+
         target_base_url = scraper_utils.extract_domain_name_from_url(url)
 
         # source is generally shorter or equal to target_base_url
-        return any(source in target_base_url for source in self.source_base_urls)
+        valid = any(source in target_base_url for source in self.__class__.source_base_urls)
+
+        if not valid:
+            raise scraper_utils.NewsScrapperError(
+                "URL [%s] does not match any of base_urls: %s"
+                % (url, self.__class__.source_base_urls)
+            )
+
+
+class DefaultHtmlNewsParser(HtmlNewsParser):
+
+    def _check_url(self, url):
+        pass
 
 
 class LtnHtmlNewsParser(HtmlNewsParser):
 
-    def __init__(self):
-        self.source_base_urls = ['ltn.com.tw']
+    source_base_urls = ['ltn.com.tw']
 
     def get_news_content(self, url):
         """Ltn has two common html formats...
         """
-        try:
-            return super().get_news_content(url, "div", {"class": "text"}, raise_error=True)
-        except AttributeError:
-            return super().get_news_content(url, "div", {"class": "news_content"})
+
+        possible_class_names = ["text", "news_content", "boxTitle", "conbox", "content"]
+
+        for class_name in possible_class_names[:-1]:
+            try:
+                return super().get_news_content(
+                    url, "div", {"class": class_name}, raise_error=True
+                )
+            except AttributeError:
+                continue
+
+        # The last one
+        return super().get_news_content(
+            url, "div", {"class": possible_class_names[-1]}  # No 'raise_error=True' here
+        )
 
 
 class CnaHtmlNewsParser(HtmlNewsParser):
 
-    def __init__(self):
-        self.source_base_urls = ['cna.com.tw']
+    source_base_urls = ['cna.com.tw']
 
     def get_news_content(self, url):
         return super().get_news_content(url, "div", {"class": "article_box"})
@@ -181,8 +221,7 @@ class CnaHtmlNewsParser(HtmlNewsParser):
 
 class UdnHtmlNewsParser(HtmlNewsParser):
 
-    def __init__(self):
-        self.source_base_urls = ['udn.com']
+    source_base_urls = ['udn.com']
 
     def get_news_content(self, url):
         return super().get_news_content(url, "div", {"id": "story_body_content"})
@@ -190,15 +229,18 @@ class UdnHtmlNewsParser(HtmlNewsParser):
 
 class EtodayHtmlNewsParser(HtmlNewsParser):
 
-    def __init__(self):
-        self.source_base_urls = ['ettoday.net']
+    source_base_urls = ['ettoday.net']
 
     def get_news_content(self, url):
-
         return super().get_news_content(url, "div", {"class": "story"})
 
 
 if __name__ == '__main__':
+
+    print(parsers_registry)
+
+    print('##########################')
+
     scraper_utils.setup_logger('error_log', to_console=True)
     parser = LtnHtmlNewsParser()
     content = parser.get_news_content('http://news.ltn.com.tw/news/society/breakingnews/2346006')

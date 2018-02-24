@@ -1,3 +1,6 @@
+- [ERROR] [2018-02-22 22:40:37,403)] Please set up 'error_log' logger first.
+  這樣感覺不好，既然名稱打算寫死了，那就該寫死到底?
+  不對，沒事，這個錯誤訊息是寫給我自己除錯時看的，實際使用時並不會發生
 
 - local_news_parser.py 可能會 Raise HTTPError, URLError，呼叫者要處理
 
