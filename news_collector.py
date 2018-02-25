@@ -74,7 +74,14 @@ def retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
 def main():
     start_time = timer()
     # Set up loggers
-    scraper_utils.setup_logger('error_log', to_console=True, level=logging.WARNING)
+
+    # Error / Warning log
+    # if to_console is set to True, warning msgs will be print twice.
+    # Because root logger will also display it.
+    scraper_utils.setup_logger(
+        'error_log', level=logging.WARNING, logfile='error.log', to_console=False
+    )
+
     # root logger
     logging.basicConfig(level=logging.DEBUG, format=scraper_utils.default_log_format)
 
