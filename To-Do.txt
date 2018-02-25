@@ -1,12 +1,5 @@
 - 神秘問題:
-    1. 為什麼 許多 Warning 都會跳兩次一模一樣的內容? 究竟哪裡重複紀錄了?
-
-    ==> 已解決，原因是 root logger 也會把 error logger 的內容印出來，所以重複輸出
-
     2. [WARNING] [2018-02-24 15:31:47,688)] HTTP Error 403 for RSS feed 'https://news.google.com/news/rss/headlines/section/topic/HEALTH?ned=zh-tw_tw&hl=zh-tw&gl=TW'
-
-- Included Keywords 目前是 OR，要改為 AND 才對
-
 
 =====================================
 
@@ -23,14 +16,6 @@
   ==> 或是把兩層的結構割開，一個一個來
 
 
-===================
-
-計算分數的方式，應該要容易抽換
-以及解讀 Rule 的方式
-例如:
-    1. 可以只看標題，也可以擴充為可以從內文來判斷
-    2. Included Keywords 可以是 OR 的關係，或是 AND
-
 ====================
 
 pip install nose
@@ -45,12 +30,6 @@ Unit Test 參考資料:
     *** 還是得研究一下怎麼做比較好
 
 - 暫時先把輸出寫到檔案裡，大致上沒問題後再改用資料庫
-
-
-- 如何用 RULE 來分類新聞?
-    * 關鍵字在標題 ==> 高分     +10
-    * 關鍵字在新聞 link 到的內容裡面 ==> 數次數，每次 +1
-        ==> 如何區別是內容還是側欄?
 
 - 加入 Yahoo Stock RSS 來源
 

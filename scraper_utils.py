@@ -1,7 +1,8 @@
 import logging
 import re
 
-default_log_format = '[%(levelname)s] [%(asctime)s] %(message)s\n'
+# default_log_format = '[%(levelname)s] [%(asctime)s] %(message)s\n'
+default_log_format = '[%(levelname)s] %(message)s\n'
 
 
 def log_warning(msg, is_error=False):

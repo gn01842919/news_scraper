@@ -1,5 +1,6 @@
 """
 """
+import logging
 import scraper_utils
 
 
@@ -50,20 +51,36 @@ class NewsRSSEntry(object):
         Score:
             < 0 ==> excluded     (by rule.excluded_keywords)
             > 0 ==> of interest  (by rule.included_keywords)
-            = 0 ==> others (not of interest)
+            = 0 ==> others (not of interest) (does not contains "all" included_keywords)
         """
         score = 0
 
         for keyword in rule.excluded_keywords:
             if keyword in self.title:
-                score -= 1
+                score -= 10
 
-        # Skip 'included_keywords' if this news should be excluded
-        if score >= 0:
-            for keyword in rule.included_keywords:
-                # Should change to analyse the content of the news
-                if keyword in self.title:
-                    score += 1
+        if score < 0:
+            # Excluded. No more evaluation.
+            return score
+
+        contains_all_keywords = True
+        for keyword in rule.included_keywords:
+            # Should change to analyse the content of the news
+
+            keyword_occurrences_in_title = self.title.count(keyword)
+            if keyword_occurrences_in_title > 0:
+                score += keyword_occurrences_in_title * 10
+
+            keyword_occurrences_in_description = self.description.count(keyword)
+            if keyword_occurrences_in_description > 0:
+                score += keyword_occurrences_in_description * 1
+
+            if not keyword_occurrences_in_title and not keyword_occurrences_in_description:
+                # If any of the keywords does not appear, this news does not pass the rule
+                contains_all_keywords = False
+
+        if not contains_all_keywords:
+            score = 0
 
         return score
 

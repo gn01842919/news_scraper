@@ -113,18 +113,18 @@ class HtmlNewsParser(object, metaclass=LocalNewsMeta):
     def _get_news_content_by_default(self, url):
         try:
             news_content = self._get_news_content_by_meta_name(url, "description")
-        except TypeError as e:
+        except (TypeError, KeyError) as e:
             try:
                 news_content = self._get_news_content_by_meta_name(url, "Description")
-            except TypeError as e:
+            except (TypeError, KeyError) as e:
                 msg = (
-                    "Try to get news content by meta description from [%s], but fail. "
-                    "Currently the raw html is returned as a workaround."
+                    "Try to get news content by meta description from [%s], but fail."
                     % url
                 )
                 scraper_utils.log_warning(msg)
 
-                news_content = self._get_beautifulsoup_obj(url).get_text()
+                # news_content = self._get_beautifulsoup_obj(url).get_text()
+                news_content = "<Fail to get news_content>"
 
         return news_content
 
