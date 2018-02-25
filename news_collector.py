@@ -13,7 +13,7 @@ from local_news_parsers import update_local_news_sources_list
 from news_sources import news_source_registry
 from scraping_rules_reader import read_rules_from_file
 
-MAX_WORKERS = 20
+MAX_WORKERS = 30
 RSS_WORKER_TIMEOUT = 120
 
 
@@ -49,8 +49,9 @@ def retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
             news_src = NewsSourceClass()
 
             for category in news_src.categories:
-                future_obj = executor.submit(news_src.get_feed_object, category)
-                future_url_map[future_obj] = news_src._get_rss_url(category)
+                future_obj = executor.submit(news_src.get_raw_feed_object, category)
+                future_url_map[future_obj] = (news_src, category)
+                # future_url_map[future_obj] = news_src._get_rss_url(category)
 
         logging.info("Retrieving %d RSS feeds concurrently." % len(future_url_map))
 
@@ -58,15 +59,17 @@ def retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
 
         try:
             for future_obj in done_iter:
-                url = future_url_map[future_obj]
+                news_src, category = future_url_map[future_obj]
+                url = news_src._get_rss_url(category)
                 try:
-                    feed_obj = future_obj.result()
+                    raw_feed = future_obj.result()
                 except HTTPError as e:
                     scraper_utils.log_warning("HTTP Error %d for RSS feed '%s'" % (e.code, url))
                 except URLError as e:
                     scraper_utils.log_warning("URL Error [%s] for RSS feed '%s'" % (e.reason, url))
                 else:
-                    yield feed_obj
+                    yield news_src.parse_feed(raw_feed, category)
+
         except futures.TimeoutError as e:
             scraper_utils.log_warning("Timeout in news_collector: %s" % str(e))
 

@@ -17,15 +17,8 @@ import scraper_utils
 from news_data import NewsRSSEntry
 
 
-MAX_WORKERS = 10
+MAX_WORKERS = 20
 HTML_PARSER_WORKER_TIMEOUT = 60
-
-
-def _check_rss_url_is_valid(url):
-    # 'feedparser' does not raise exceptions when RSS url returns 404 Error
-    # So use urlopen() to force raising HTTPError and URLError
-    with urlopen(url):
-        pass
 
 
 def _get_news_source_website_name_by_feed_title(title):
@@ -54,6 +47,15 @@ def _generate_description_from_local_news_source_by_parser(
         return None
 
     return "(Extracted from '%s')\n%s" % (news_source, description)
+
+
+def get_raw_feed_obj(url):
+    # 'feedparser' does not raise exceptions when RSS url returns 404 Error
+    # So use urlopen() to force raising HTTPError or URLError
+    with urlopen(url):
+        pass
+
+    return feedparser.parse(url)
 
 
 class MyFeed(object):
@@ -105,11 +107,7 @@ class RSSFeedParser(object):
     _description_depends_on_local_news_sources = False
 
     @classmethod
-    def parse_feed(cls, url, category=None):
-
-        _check_rss_url_is_valid(url)
-
-        feed = feedparser.parse(url)
+    def parse_feed(cls, feed, category=None):
 
         # _pickle_feed_object_to_file_for_unit_tests(url, feed)
 
@@ -117,16 +115,13 @@ class RSSFeedParser(object):
         subtitle = cls._get_subtitle(feed.feed)
         language = cls._get_language(feed.feed)
         published_time = cls._get_time(feed.feed)
-        # feed_link may have stupid errors, such as:
-        # https://news.google.coms/rss/headlines/section/topic/NATION.zh-TW_tw/%E5%8F%B0%E7%81%A3?ned=tw&hl=zh-tw&gl=TW
-        # So... do not use it.......
-        # feed_link = cls._get_link(feed.feed)
+        feed_link = cls._get_link(feed.feed)
 
         entries = tuple(
-            cls._get_entries_from_feed(feed.entries, url, category)
+            cls._get_entries_from_feed(feed.entries, feed_link, category)
         )
 
-        return MyFeed(title, subtitle, url, language, published_time, entries)
+        return MyFeed(title, subtitle, feed_link, language, published_time, entries)
 
     @classmethod
     def _get_entries_from_feed(cls, entries, feed_link, category):
