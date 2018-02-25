@@ -104,12 +104,12 @@ def _pickle_feed_object_to_file_for_unit_tests(url, feed):
 
 class RSSFeedParser(object):
 
+    _description_depends_on_local_news_sources = False
+
     @classmethod
-    def parse_feed(cls, feed, threadpool_executor, category=None):
+    def parse_feed_with_threadpool(cls, feed, threadpool_executor, future_map, category=None):
 
         # _pickle_feed_object_to_file_for_unit_tests(url, feed)
-
-        future_map = {}
 
         title = cls._get_title(feed.feed)
         subtitle = cls._get_subtitle(feed.feed)
@@ -117,21 +117,14 @@ class RSSFeedParser(object):
         published_time = cls._get_time(feed.feed)
         feed_link = cls._get_link(feed.feed)
 
-        # description may need to be parsed by threads
-        done_iter, future_map = cls._get_news_entries_from_feed_with_threadpool_executor(
+        done_iter, future_map = cls._get_entries_from_feed(
             feed.entries, feed_link, category, threadpool_executor, future_map
         )
 
-        return (
-            MyFeed(title, subtitle, feed_link, language, published_time, None),
-            done_iter,
-            future_map
-        )
+        return MyFeed(title, subtitle, feed_link, language, published_time, None), done_iter, future_map
 
     @classmethod
-    def _get_news_entries_from_feed_with_threadpool_executor(
-        cls, entries, feed_link, category, executor, future_map
-    ):
+    def _get_entries_from_feed(cls, entries, feed_link, category, executor, future_map):
         """
         Note that _get_description(entry) may take time for some news sources
         such as Google News because it has to acquire the news content from
@@ -167,7 +160,7 @@ class RSSFeedParser(object):
 
         return done_iter, future_map
 
-    def yield_news_entry_given_future_iters(done_iter, future_map):
+    def yield_news_entry_given_done_future_iters(done_iter, future_map):
         try:
             for future_obj in done_iter:
                 news_rss_entry = future_map[future_obj]
@@ -177,10 +170,45 @@ class RSSFeedParser(object):
                 yield news_rss_entry
 
         except futures.TimeoutError as e:
-            scraper_utils.log_warning(
-                "Timeout in yield_news_entry_given_future_iters(). Message:\n\t%s"
-                % (str(e))
-            )
+            pass
+            # scraper_utils.log_warning(
+            #     "Timeout in _get_entries_from_feed() when processing the news entry:\n"
+            #     "%s"
+            #     "\tRSS [%s] '%s'\n"
+            #     "\tError Message: %s\n"
+            #     % (repr(news_rss_entry), category, feed_link, str(e))
+            # )
+
+        # logging.info(
+        #     "RSS [%s][%s]: Done in %f seconds. (Totally %d news entries)"
+        #     % (news_source, category, timer() - start_time, len(entries))
+        # )
+        logging.info(
+            "RSS done. (Totally %d news entries)"
+            % (len(future_map))
+        )
+
+    @classmethod
+    def _get_entries_from_feed_sequentially(cls, entries, feed_link, category):
+        logging.info(
+            "<Sequentially> Processing %d news entries for RSS [%s] '%s' concurrently..."
+            % (len(entries), category, feed_link)
+        )
+        start_time = timer()
+
+        for entry in entries:
+            title = cls._get_title(entry)
+            link = cls._get_link(entry)
+            published_time = cls._get_time(entry)
+            news_source = _get_news_source_website_name_by_feed_title(feed_link)
+            description = cls._get_description(entry)
+
+            yield NewsRSSEntry(title, description, link, published_time, news_source, category)
+
+        logging.info(
+            "<Sequentially> Done in %f seconds: %d news entries for RSS [%s] '%s'"
+            % (timer() - start_time, len(entries), category, feed_link)
+        )
 
     @staticmethod
     def _get_title(feed):
@@ -300,7 +328,7 @@ class GoogleFeedParser(RSSFeedParser):
         # All candidates fail
         # This is very unlikely to happen
         msg = "No candidate local news source works for GoogleNews '%s'.\n" % feed.title
-        msg += "\tThe raw description is: %s" % feed.description
+        msg += "\tThe raw description is: {}" % feed.description
         scraper_utils.log_warning(msg)
 
         return feed.description
