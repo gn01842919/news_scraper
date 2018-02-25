@@ -1,3 +1,14 @@
+- 神秘問題:
+    1. 為什麼 許多 Warning 都會跳兩次一模一樣的內容? 究竟哪裡重複紀錄了?
+    2. [WARNING] [2018-02-24 15:31:47,688)] HTTP Error 403 for RSS feed 'https://news.google.com/news/rss/headlines/section/topic/HEALTH?ned=zh-tw_tw&hl=zh-tw&gl=TW'
+
+- local_news_parser.py 可能會 Raise HTTPError, URLError，呼叫者要處理
+
+- Google News 的 Description 改成 Local 新聞內容
+
+- 將 Local News Source 註冊起來，以便對應，看 Google News 的需求
+
+=====================================
 
 - 抓取 description 的部分採用並時處理，總時間竟然沒有加速?????
   如果在 _get_entries_from_feed() 裡面用 timer 計算時間，有時看起來像是有加速，但有時候看起來又完全沒加速
@@ -11,15 +22,7 @@
       真的要做的話，可能要用 subprocess
   ==> 或是把兩層的結構割開，一個一個來
 
-- 神秘問題:
-    1. 為什麼 許多 Warning 都會跳兩次一模一樣的內容? 究竟哪裡重複紀錄了?
-    2. [WARNING] [2018-02-24 15:31:47,688)] HTTP Error 403 for RSS feed 'https://news.google.com/news/rss/headlines/section/topic/HEALTH?ned=zh-tw_tw&hl=zh-tw&gl=TW'
 
-- local_news_parser.py 可能會 Raise HTTPError, URLError，呼叫者要處理
-
-- Google News 的 Description 改成 Local 新聞內容
-
-- 將 Local News Source 註冊起來，以便對應，看 Google News 的需求
 
 ===================
 

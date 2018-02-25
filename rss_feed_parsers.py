@@ -5,6 +5,7 @@ import logging
 from concurrent import futures
 from datetime import datetime
 from timeit import default_timer as timer
+from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 # PyPI
 import feedparser
@@ -37,6 +38,22 @@ def _get_news_source_website_name_by_feed_title(title):
         return 'yahoo'
     else:
         return 'others'
+
+
+def _generate_description_from_local_news_source_by_parser(
+    news_title, news_source, local_news_link, html_parser
+):
+
+    try:
+        description = html_parser.get_news_content(local_news_link).strip()
+    except HTTPError as e:
+        scraper_utils.log_warning("HTTP Error %d for local news '%s'" % (e.code, local_news_link))
+        return None
+    except URLError as e:
+        scraper_utils.log_warning("URL Error [%s] for local news '%s'" % (e.reason, local_news_link))
+        return None
+
+    return "(Extracted from '%s')\n%s" % (news_source, description)
 
 
 class MyFeed(object):
@@ -282,27 +299,37 @@ class GoogleFeedParser(RSSFeedParser):
                     # A proper parser (html_parser) is found.
                     html_parser = parsers_registry[local_source]()
 
-                    return "(Extracted from '%s')\n%s" % (
-                        news_source,
-                        html_parser.get_news_content(news_link).strip()
+                    result = _generate_description_from_local_news_source_by_parser(
+                        news_title, news_source, news_link, html_parser
                     )
+                    if result:
+                        return result
+                    else:
+                        continue
 
                 else:
                     # No proper parser is found.
                     # Add this news_source to candidates
                     candidates.append([news_title, news_source, news_link])
 
-        # No proper parser if found for any of local news sources
+        # No proper parser is found for any of local news sources
         # So use the default parser to parse the first local news source
-        if candidates:
-            html_parser = local_news_parsers.DefaultHtmlNewsParser()
-            news_title, news_source, news_link = candidates[0]
 
-            return "(Extracted from '%s' by default parser)\n%s" % (
-                news_source,
-                html_parser.get_news_content(news_link)
+        for news_title, news_source, news_link in candidates:
+            html_parser = local_news_parsers.DefaultHtmlNewsParser()
+
+            result = _generate_description_from_local_news_source_by_parser(
+                news_title, news_source, news_link, html_parser
             )
-        else:
-            msg = "No candidate local news source for GoogleNews '%s'.\n" % feed.title
-            msg += "\tThe raw description is: {}" % feed.description
-            raise scraper_utils.NewsScraperError(msg)
+            if result:
+                return result
+            else:
+                continue
+
+        # All candidates fail
+        # This is very unlikely to happen
+        msg = "No candidate local news source works for GoogleNews '%s'.\n" % feed.title
+        msg += "\tThe raw description is: {}" % feed.description
+        scraper_utils.log_warning(msg)
+
+        return feed.description
