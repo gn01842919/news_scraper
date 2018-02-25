@@ -107,7 +107,7 @@ class RSSFeedParser(object):
     _description_depends_on_local_news_sources = False
 
     @classmethod
-    def parse_feed(cls, feed, category=None):
+    def parse_feed_with_threadpool(cls, feed, threadpool_executor, future_map, category=None):
 
         # _pickle_feed_object_to_file_for_unit_tests(url, feed)
 
@@ -117,14 +117,14 @@ class RSSFeedParser(object):
         published_time = cls._get_time(feed.feed)
         feed_link = cls._get_link(feed.feed)
 
-        entries = tuple(
-            cls._get_entries_from_feed(feed.entries, feed_link, category)
+        done_iter, future_map = cls._get_entries_from_feed(
+            feed.entries, feed_link, category, threadpool_executor, future_map
         )
 
-        return MyFeed(title, subtitle, feed_link, language, published_time, entries)
+        return MyFeed(title, subtitle, feed_link, language, published_time, None), done_iter, future_map
 
     @classmethod
-    def _get_entries_from_feed(cls, entries, feed_link, category):
+    def _get_entries_from_feed(cls, entries, feed_link, category, executor, future_map):
         """
         Note that _get_description(entry) may take time for some news sources
         such as Google News because it has to acquire the news content from
@@ -132,57 +132,61 @@ class RSSFeedParser(object):
 
         Therefore, retrieve entries in parallel.
         """
-        start_time = timer()
-        with futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            future_url_map = {}
+        # start_time = timer()
+        news_source = _get_news_source_website_name_by_feed_title(feed_link)
 
-            for entry in entries:
-                title = cls._get_title(entry)
-                link = cls._get_link(entry)
-                published_time = cls._get_time(entry)
-                news_source = _get_news_source_website_name_by_feed_title(feed_link)
+        for entry in entries:
+            title = cls._get_title(entry)
+            link = cls._get_link(entry)
+            published_time = cls._get_time(entry)
 
-                tmp_news_entry = NewsRSSEntry(
-                    title, "", link, published_time, news_source, category
-                )
+            tmp_news_entry = NewsRSSEntry(
+                title, "", link, published_time, news_source, category
+            )
 
-                # For description
-                future_obj = executor.submit(cls._get_description, entry)
-                future_url_map[future_obj] = tmp_news_entry
+            # For description
+            future_obj = executor.submit(cls._get_description, entry)
+            future_map[future_obj] = tmp_news_entry
 
-            if future_url_map:
-                logging.info(
-                    "Processing %d news entries for RSS [%s] '%s' concurrently..."
-                    % (len(entries), category, feed_link)
-                )
+        logging.info(
+            "RSS [%s][%s]: Processing %d news entries concurrently..."
+            % (news_source, category, len(entries))
+        )
 
-                done_iter = futures.as_completed(
-                    future_url_map,
-                    timeout=HTML_PARSER_WORKER_TIMEOUT
-                )
-                try:
-                    for future_obj in done_iter:
-                        description = future_obj.result()
+        done_iter = futures.as_completed(
+            future_map,
+            timeout=HTML_PARSER_WORKER_TIMEOUT
+        )
 
-                        news_rss_entry = future_url_map[future_obj]
-                        news_rss_entry.description = description
+        return done_iter, future_map
 
-                        yield news_rss_entry
+    def yield_news_entry_given_done_future_iters(done_iter, future_map):
+        try:
+            for future_obj in done_iter:
+                news_rss_entry = future_map[future_obj]
+                description = future_obj.result()
+                news_rss_entry.description = description
 
-                except futures.TimeoutError as e:
-                    news_rss_entry = future_url_map[future_obj]
-                    scraper_utils.log_warning(
-                        "Timeout in _get_entries_from_feed() when processing the news entry:\n"
-                        "%s"
-                        "\tRSS [%s] '%s'\n"
-                        "\tError Message: %s\n"
-                        % (repr(news_rss_entry), category, feed_link, str(e))
-                    )
+                yield news_rss_entry
 
-                logging.info(
-                    "Done in %f seconds: %d news entries for RSS [%s] '%s'"
-                    % (timer() - start_time, len(entries), category, feed_link)
-                )
+        except futures.TimeoutError as e:
+            pass
+            # scraper_utils.log_warning(
+            #     "Timeout in _get_entries_from_feed() when processing the news entry:\n"
+            #     "%s"
+            #     "\tRSS [%s] '%s'\n"
+            #     "\tError Message: %s\n"
+            #     % (repr(news_rss_entry), category, feed_link, str(e))
+            # )
+
+        # logging.info(
+        #     "RSS [%s][%s]: Done in %f seconds. (Totally %d news entries)"
+        #     % (news_source, category, timer() - start_time, len(entries))
+        # )
+        logging.info(
+            "RSS done. (Totally %d news entries)"
+            % (len(future_map))
+        )
 
     @classmethod
     def _get_entries_from_feed_sequentially(cls, entries, feed_link, category):

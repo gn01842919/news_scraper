@@ -13,7 +13,7 @@ from local_news_parsers import update_local_news_sources_list
 from news_sources import news_source_registry
 from scraping_rules_reader import read_rules_from_file
 
-MAX_WORKERS = 30
+MAX_WORKERS = 200
 RSS_WORKER_TIMEOUT = 120
 
 
@@ -40,9 +40,10 @@ def retrieve_registered_news_by_rss_sequentially():
 def retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
     """Retrieve RSS news by a thread pool
     """
-
+    result_map = {}
     with futures.ThreadPoolExecutor(max_workers=num_of_workers) as executor:
-        future_url_map = {}
+        future_news_source_map = {}
+        future_news_entry_map = {}
 
         # For each registered news source, put it into thread pool
         for class_name, NewsSourceClass in news_source_registry.items():
@@ -50,17 +51,19 @@ def retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
 
             for category in news_src.categories:
                 future_obj = executor.submit(news_src.get_raw_feed_object, category)
-                future_url_map[future_obj] = (news_src, category)
-                # future_url_map[future_obj] = news_src._get_rss_url(category)
+                future_news_source_map[future_obj] = (news_src, category)
+                # future_news_source_map[future_obj] = news_src._get_rss_url(category)
 
-        logging.info("Retrieving %d RSS feeds concurrently." % len(future_url_map))
+        logging.info("Retrieving %d RSS feeds concurrently." % len(future_news_source_map))
 
-        done_iter = futures.as_completed(future_url_map, timeout=worker_timeout)
+        done_iter = futures.as_completed(future_news_source_map, timeout=worker_timeout)
 
         try:
+
             for future_obj in done_iter:
-                news_src, category = future_url_map[future_obj]
+                news_src, category = future_news_source_map[future_obj]
                 url = news_src._get_rss_url(category)
+                logging.info("RSS feed [%s] is retrieved." % category)
                 try:
                     raw_feed = future_obj.result()
                 except HTTPError as e:
@@ -68,10 +71,22 @@ def retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
                 except URLError as e:
                     scraper_utils.log_warning("URL Error [%s] for RSS feed '%s'" % (e.reason, url))
                 else:
-                    yield news_src.parse_feed(raw_feed, category)
+                    news_feed_obj, news_entries_done_iter, future_map = news_src.feed_parser.parse_feed_with_threadpool(
+                        raw_feed, executor, future_news_entry_map, category
+                    )
+                    result_map[news_feed_obj] = (news_entries_done_iter, future_map)
 
         except futures.TimeoutError as e:
             scraper_utils.log_warning("Timeout in news_collector: %s" % str(e))
+
+        print("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFinalllllyyyyyyyyyyyyyyyyy")
+
+        for news_feed_obj, (done_iter, future_map) in result_map.items():
+            news_entries = news_src.feed_parser.yield_news_entry_given_done_future_iters(
+                done_iter, future_map
+            )
+            news_feed_obj.entries = tuple(news_entries)
+            yield news_feed_obj
 
 
 def main():
@@ -112,8 +127,8 @@ def main():
         'Record %d news out of total %d news.' % (len(target_news), len(news_entries))
     )
 
-    for news in target_news:
-        print(repr(news))
+    # for news in target_news:
+    #     print(repr(news))
 
     logging.info("Done. Elapsed time: %f seconds" % (timer() - start_time))
 
