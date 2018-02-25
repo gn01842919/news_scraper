@@ -1,5 +1,3 @@
-- 神秘問題:
-    2. [WARNING] [2018-02-24 15:31:47,688)] HTTP Error 403 for RSS feed 'https://news.google.com/news/rss/headlines/section/topic/HEALTH?ned=zh-tw_tw&hl=zh-tw&gl=TW'
 
 =====================================
 
