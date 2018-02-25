@@ -1,21 +1,3 @@
-- 神秘問題:
-    2. [WARNING] [2018-02-24 15:31:47,688)] HTTP Error 403 for RSS feed 'https://news.google.com/news/rss/headlines/section/topic/HEALTH?ned=zh-tw_tw&hl=zh-tw&gl=TW'
-
-=====================================
-
-- 抓取 description 的部分採用並時處理，總時間竟然沒有加速?????
-  如果在 _get_entries_from_feed() 裡面用 timer 計算時間，有時看起來像是有加速，但有時候看起來又完全沒加速
-  而整個程式的執行時間，完全沒有加速!!!!
-  我猜測是因為，我抓取 RSS Feed 時就用了一層 ThreadPool，然後在 Thread 中再次產生 thread pool
-  也許因為這樣不行?
-  ==> 應該真的是這個原因，我把 RSS 那層改成 sequential，造成產生 description 所需的時間，從 20 秒上下大幅縮減為 3 秒上下，雖然總花費時間還是增加了。
-
-  ==> 試著改用 Process Pool
-  ==> 不對，Process Pool 指的是從 CPU Level 的平行處理，不是用 Process 取代 thread
-      真的要做的話，可能要用 subprocess
-  ==> 或是把兩層的結構割開，一個一個來
-
-
 ====================
 
 pip install nose
@@ -25,6 +7,8 @@ Unit Test 參考資料:
     https://imsardine.wordpress.com/tech/unit-testing-in-python/
 
 =====================
+
+- 產出 SQL 語法
 
 - 撰寫 Unit Test
     *** 還是得研究一下怎麼做比較好
@@ -36,12 +20,6 @@ Unit Test 參考資料:
 -  # 關鍵字在 Description ==> 數次數  每次 +1
    # 這我看先不要，Yahoo 各家新聞來源的 Description 很不統一，
      有些把完整內文都放進去，有些只放媒體名稱
-
-
-- 多一個項目名稱叫做 "Content"
-  是把新聞來源連結的內容 (例如自由時報的報導) 讀出來存在這變數裡面
-  ==> 這很麻煩，因為各家新聞網的格式應該不同，而且只是拿來算分用，效益不大
-  ==> 很後面有需要再做
 
 =======================================================
 一些非常雜亂不打算整理的筆記
