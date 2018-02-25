@@ -1,6 +1,6 @@
 """
 """
-import logging
+from concurrent import futures
 # Local modules
 import scraper_utils
 import rss_feed_parsers
@@ -37,7 +37,6 @@ class NewsSource(object, metaclass=NewsMeta):
 
         # This will get RSS content from web.
         # Need to wait for IO
-        logging.info("Getting RSS from [%s]." % category)
         raw_feed = rss_feed_parsers.get_raw_feed_obj(rss_url)
 
         # raw_feed_obj.feed.link may have stupid errors, such as:
