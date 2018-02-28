@@ -69,22 +69,18 @@ class MyFeed(object):
 
     def __repr__(self):
         return (
-            "======== <MyFeed object at {}> ========\n"
-            "[Title]       : {}\n"
-            "[Subtitle]    : {}\n"
-            "[Link]        : {}\n"
-            "[Language]    : {}\n"
-            "[Published]   : {}\n"
-            "[# of Entries]: {}\n"
+            "======== <MyFeed object at {0}> ========\n"
+            "[Title]       : {feed_obj.title}\n"
+            "[Subtitle]    : {feed_obj.subtitle}\n"
+            "[Link]        : {feed_obj.link}\n"
+            "[Language]    : {feed_obj.language}\n"
+            "[Published]   : {feed_obj.published_time}\n"
+            "[# of Entries]: {1}\n"
             "===============================================\n"
             .format(
                 hex(id(self)),
-                self.title,
-                self.subtitle,
-                self.link,
-                self.language,
-                self.published_time,
                 len(self.entries),
+                feed_obj=self
             )
         )
 

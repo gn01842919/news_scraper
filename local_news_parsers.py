@@ -233,7 +233,7 @@ class EtodayHtmlNewsParser(HtmlNewsParser):
         return super().get_news_content(url, "div", {"class": "story"})
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # For test
 
     print(parsers_registry)
 

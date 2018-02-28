@@ -1,6 +1,5 @@
 """
 """
-from concurrent import futures
 # Local modules
 import scraper_utils
 import rss_feed_parsers
@@ -97,7 +96,7 @@ class YahooNews(NewsSource):
         pass
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # For test
 
     print(news_source_registry)
 

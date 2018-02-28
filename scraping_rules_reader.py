@@ -19,13 +19,17 @@ class ScrapingRule(object):
         self.tags = set()
 
     def __repr__(self):
-        output = "-------- Scraping Rule --------\n"
-        output += "[Name]: %s\n" % self.name
-        output += "[Include]: %s\n" % self.included_keywords
-        output += "[Exclude]: %s\n" % self.excluded_keywords
-        output += "[Tags]: %s\n" % self.tags
-        output += "------------------------------\n"
-        return output
+
+        return (
+            "\n"
+            "------- <Scraping Rule> -------\n"
+            "[Name]   : {rule_obj.name}\n"
+            "[Include]: {rule_obj.included_keywords}\n"
+            "[Exclude]: {rule_obj.excluded_keywords}\n"
+            "[Tags]   : {rule_obj.tags}\n"
+            "------------------------------\n"
+            .format(rule_obj=self)
+        )
 
     def __str__(self):
         return "<ScrapingRule '%s'>" % self.name
@@ -120,7 +124,7 @@ def read_rules_from_file(filename):
     return rules.values()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # For test
 
     rules = read_rules_from_file('test.rule')
 

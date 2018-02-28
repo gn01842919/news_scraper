@@ -1,6 +1,5 @@
 """
 """
-import logging
 import scraper_utils
 
 
@@ -86,24 +85,20 @@ class NewsRSSEntry(object):
 
     def __repr__(self):
         return (
-            "  -- <NewsRSSEntry object at {}> --\n"
-            "  [Title]       : {}\n"
-            "  [Description] : {}\n"
-            "  [Link]        : {}\n"
-            "  [Published]   : {}\n"
-            "  [Source]      : {}\n"
-            "  [Tags]        : {}\n"
-            "  [Rules]       : {}\n"
-            "  ---------------------------------\n"
+            "  #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#\n"
+            "  -- <NewsRSSEntry object at {0}> --\n"
+            "  [Title]       : {news_obj.title}\n"
+            "  [Description] : {news_obj.description}\n"
+            "  [Link]        : {news_obj.link}\n"
+            "  [Published]   : {news_obj.published_time}\n"
+            "  [Source]      : {news_obj.source}\n"
+            "  [Tags]        : {news_obj.tags}\n"
+            "  [Rules]       : {rules}\n"
+            "  #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#\n"
             .format(
                 hex(id(self)),
-                self.title,
-                self.description,
-                self.link,
-                self.published_time,
-                self.source,
-                self.tags,
-                {str(rule): score for rule, score in self.rule_score_map.items()}
+                news_obj=self,
+                rules={str(rule): score for rule, score in self.rule_score_map.items()}
             )
         )
 
