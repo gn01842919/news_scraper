@@ -1,6 +1,5 @@
 """
 """
-
 # Standard library
 import logging
 from concurrent import futures
@@ -12,9 +11,25 @@ import scraper_utils
 from local_news_parsers import update_local_news_sources_list
 from news_sources import news_source_registry
 from scraping_rules_reader import read_rules_from_file
+from store_data_to_db import NewsDatabaseAPI
+from db_operation_api.mydb import PostgreSqlDB
 
 MAX_WORKERS = 10
 RSS_WORKER_TIMEOUT = 120
+
+
+def save_data_into_database(databse_name, scraping_rules, news_entries):
+    with PostgreSqlDB(database=databse_name) as conn:
+
+        db_api = NewsDatabaseAPI(conn, table_prefix="shownews_")
+
+        # The sequence is essential
+        # MUST store scraping_rules first, news_entries latter!
+        for rule in scraping_rules:
+            db_api.store_a_scraping_rule_to_db(rule)
+
+        for news in news_entries:
+            db_api.store_a_rss_news_entry_to_db(news)
 
 
 def get_news_entries(num_of_workers, worker_timeout):
@@ -104,6 +119,10 @@ def main():
     # Filter the news by the rules (So target_news is the news of interest)
     target_news = tuple(
         news_data.get_target_news_by_scraping_rules(news_entries, scraping_rules)
+    )
+
+    save_data_into_database(
+        "my_focus_news", scraping_rules=scraping_rules, news_entries=target_news
     )
 
     logging.info(
