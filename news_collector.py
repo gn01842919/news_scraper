@@ -104,6 +104,10 @@ def main():
     # Get scraping rules
     scraping_rules = read_rules_from_file('test.rule')
 
+    with PostgreSqlDB(database="my_focus_news") as conn:
+        db_api = NewsDatabaseAPI(conn, table_prefix="shownews_")
+        db_api.reset_scraping_rules()
+
     # Get news from RSS feeds and apply rules
     news_entries = get_news_entries(MAX_WORKERS, RSS_WORKER_TIMEOUT)
     news_data.set_rules_to_news_entries(news_entries, scraping_rules)

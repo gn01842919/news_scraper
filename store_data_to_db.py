@@ -24,6 +24,9 @@ class NewsDatabaseAPI(object):
         self._reset_table("newscategory")
         self._reset_table("scrapingrule")
 
+    def reset_news_data(self):
+        self._reset_table("newsdata")
+
     def store_a_scraping_rule_to_db(self, rule):
 
         if not isinstance(rule, ScrapingRule):
