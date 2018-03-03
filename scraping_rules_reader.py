@@ -65,9 +65,9 @@ class ScrapingRule(object):
         return hash(
             (  # tuple of attributes
                 self.name,
-                tuple(self.included_keywords),
-                tuple(self.excluded_keywords),
-                tuple(self.tags)
+                frozenset(self.included_keywords),
+                frozenset(self.excluded_keywords),
+                frozenset(self.tags)
             )
         )
 
@@ -205,12 +205,11 @@ def read_rules_from_file(filename):
 if __name__ == '__main__':  # For test
     from db_operation_api.mydb import PostgreSqlDB
     with PostgreSqlDB(database="my_focus_news") as conn:
-        read_rules_from_db_connection(conn)
+        rules_from_db = read_rules_from_db_connection(conn)
 
-    exit(0)
+    rules_from_file = read_rules_from_file('test.rule')
 
+    print(rules_from_db)
+    print(rules_from_file)
 
-    rules = read_rules_from_file('test.rule')
-
-    for rule in rules:
-        print(repr(rule))
+    print(set(rules_from_file) == set(rules_from_db))
