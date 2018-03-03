@@ -6,10 +6,8 @@ RULE 自強號動態
     EXCLUDE 區間
 
     TAG 交通
-    TAG 上班 遲到
+    TAG 上班遲到
 END-OF-RULE
-
-
 
 RULE 中華民國總統
     INCLUDE 總統

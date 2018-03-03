@@ -14,11 +14,20 @@ from dateutil import parser as date_parser
 # Local modules
 import local_news_parsers
 import scraper_utils
-from news_data import NewsRSSEntry
+from scraper_models import NewsRSSEntry, RssFeed
 
 
 MAX_WORKERS = 10
 HTML_PARSER_WORKER_TIMEOUT = 60
+
+
+def get_raw_feed_obj(url):
+    # 'feedparser' does not raise exceptions when RSS url returns 404 Error
+    # So use urlopen() to force raising HTTPError or URLError
+    with urlopen(url):
+        pass
+
+    return feedparser.parse(url)
 
 
 def _get_news_source_website_name_by_feed_title(title):
@@ -47,42 +56,6 @@ def _generate_description_from_local_news_source_by_parser(
         return None
 
     return "(Extracted from '%s')\n%s" % (news_source, description)
-
-
-def get_raw_feed_obj(url):
-    # 'feedparser' does not raise exceptions when RSS url returns 404 Error
-    # So use urlopen() to force raising HTTPError or URLError
-    with urlopen(url):
-        pass
-
-    return feedparser.parse(url)
-
-
-class MyFeed(object):
-    def __init__(self, title, subtitle, link, language, published_time, entries):
-        self.title = title
-        self.subtitle = subtitle
-        self.link = link
-        self.language = language
-        self.published_time = published_time
-        self.entries = entries  # A tuple of NewsRSSEntry
-
-    def __repr__(self):
-        return (
-            "======== <MyFeed object at {0}> ========\n"
-            "[Title]       : {feed_obj.title}\n"
-            "[Subtitle]    : {feed_obj.subtitle}\n"
-            "[Link]        : {feed_obj.link}\n"
-            "[Language]    : {feed_obj.language}\n"
-            "[Published]   : {feed_obj.published_time}\n"
-            "[# of Entries]: {1}\n"
-            "===============================================\n"
-            .format(
-                hex(id(self)),
-                len(self.entries),
-                feed_obj=self
-            )
-        )
 
 
 def _pickle_feed_object_to_file_for_unit_tests(url, feed):
@@ -115,7 +88,7 @@ class RSSFeedParser(object):
             cls._get_entries_from_feed(feed.entries, feed_link, category)
         )
 
-        return MyFeed(title, subtitle, feed_link, language, published_time, entries)
+        return RssFeed(title, subtitle, feed_link, language, published_time, entries)
 
     @classmethod
     def _get_entries_from_feed(cls, entries, feed_link, category):

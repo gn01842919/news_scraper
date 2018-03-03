@@ -13,7 +13,7 @@ class MyDBError(RuntimeError):
 class MyDB(object):
     def __init__(self, db_host, db_user, db_password,
                  db_port, database, verbose):
-        raise NotImplementedError("Base class 'MyDB' should not be instanciated.")
+        raise NotImplementedError("Base class 'MyDB' must not be instanciated.")
 
     def __enter__(self):
         return self.open()
@@ -22,7 +22,7 @@ class MyDB(object):
         self.close()
 
     def open(self):
-        raise NotImplementedError("Derived classes should implement open().")
+        raise NotImplementedError("Derived classes must implement open().")
 
     def close(self):
         self.cursor.close()
@@ -32,7 +32,7 @@ class MyDB(object):
         logging.debug("The database connection has been closed.")
 
     def execute_sql_command(self, query, *args):
-        raise NotImplementedError("Derived classes should implement execute_sql_command().")
+        raise NotImplementedError("Derived classes must implement execute_sql_command().")
 
     def insert_values_into_table(self, table_name, args_map):
         place_holder = ', '.join('%s' for i in range(len(args_map)))
@@ -50,12 +50,10 @@ class MyDB(object):
         fields = ', '.join(
             "{} = %s".format(key) for key in args_map.keys()
         )
-
         args = (
             tuple(val for val in args_map.values()) +
             tuple(val for val in condition_map.values())
         )
-
         query = (
             "UPDATE {} SET {} WHERE {};".format(table_name, fields, conditions)
         )
@@ -85,7 +83,7 @@ class MyDB(object):
         )
 
         rows = self.execute_sql_command(query, db_name)
-        return rows[0][0]
+        return rows[0][0]  # bool
 
     def table_already_exists(self, table_name):
         query = (
@@ -100,7 +98,7 @@ class MyDB(object):
 
         rows = self.execute_sql_command(query, table_name)
 
-        return rows[0][0]
+        return rows[0][0]  # bool
 
     def reset_table(self, table_name):
         query = "DELETE FROM {};".format(table_name)

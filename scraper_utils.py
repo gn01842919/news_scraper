@@ -1,8 +1,7 @@
 import logging
 import re
 
-# default_log_format = '[%(levelname)s] [%(asctime)s] %(message)s\n'
-default_log_format = '[%(levelname)s] %(message)s\n'
+default_log_format = '[%(levelname)s] [%(asctime)s] %(message)s\n'
 
 
 def log_warning(msg, is_error=False):
@@ -53,8 +52,9 @@ def extract_domain_name_from_url(link):
 
 
 class NewsScrapperError(RuntimeError):
-    """ log error messages to logging.getLogger('error_log').
-        If the logger is not set, write msg to both stdout and a file 'error.log'
+    """
+    log error messages to logging.getLogger('error_log').
+    If the logger is not set, write msg to both stdout and a file 'error.log'
     """
     logger = None
 

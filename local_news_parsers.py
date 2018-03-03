@@ -21,11 +21,6 @@ import scraper_utils
 parsers_registry = {}
 
 
-def _register_local_source(name, cls):
-    global parsers_registry
-    parsers_registry[name] = cls
-
-
 def update_local_news_sources_list(news_entries, filename):
     """
         This function maintains a list of possible local news sources.
@@ -51,6 +46,11 @@ def update_local_news_sources_list(news_entries, filename):
 
     with open(filename, 'w') as f:
         f.write(json.dumps(local_news_sources, indent=True))
+
+
+def _register_local_source(name, cls):
+    global parsers_registry
+    parsers_registry[name] = cls
 
 
 def _read_local_news_sources_list_from_file(filename):
