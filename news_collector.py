@@ -10,7 +10,7 @@ import news_data
 import scraper_utils
 from local_news_parsers import update_local_news_sources_list
 from news_sources import news_source_registry
-from scraping_rules_reader import read_rules_from_file
+from scraping_rules_reader import read_rules_from_file, read_rules_from_db_connection
 from store_data_to_db import NewsDatabaseAPI
 from db_operation_api.mydb import PostgreSqlDB
 
@@ -18,7 +18,24 @@ MAX_WORKERS = 10
 RSS_WORKER_TIMEOUT = 120
 
 
-def save_data_into_database(databse_name, scraping_rules, news_entries):
+def _recalculate_news_scores():
+    # read news from db
+    # compute scores
+    # store back
+    pass
+
+
+def _read_news_from_db(conn, db_api, rules):
+    query = "SELECT id, title, content, url, time from shownews_newsdata;"
+    rows = conn.execute_sql_command(query)
+
+    return {
+        id: news_data.NewsRSSEntry(title, content, url, pub_time, '', rules=rules)
+        for id, title, content, url, pub_time in rows
+    }
+
+
+def save_scraping_rules_into_database(databse_name, scraping_rules):
     with PostgreSqlDB(database=databse_name) as conn:
 
         db_api = NewsDatabaseAPI(conn, table_prefix="shownews_")
@@ -27,6 +44,13 @@ def save_data_into_database(databse_name, scraping_rules, news_entries):
         # MUST store scraping_rules first, news_entries latter!
         for rule in scraping_rules:
             db_api.store_a_scraping_rule_to_db(rule)
+
+
+
+def save_news_data_into_database(databse_name, news_entries):
+    with PostgreSqlDB(database=databse_name) as conn:
+
+        db_api = NewsDatabaseAPI(conn, table_prefix="shownews_")
 
         for news in news_entries:
             db_api.store_a_rss_news_entry_to_db(news)
@@ -106,7 +130,26 @@ def main():
 
     with PostgreSqlDB(database="my_focus_news") as conn:
         db_api = NewsDatabaseAPI(conn, table_prefix="shownews_")
-        db_api.reset_scraping_rules()
+
+        rules_from_db = read_rules_from_db_connection(conn)
+
+        # If rules have changed ==> update scores in DB
+        if set(scraping_rules) != set(rules_from_db.values()):
+            logging.info("ScrapingRules have changed. Remove previous rules from DB.")
+            db_api.reset_scraping_rules_and_relations()
+            logging.info("Save new ScrapingRules into DB.")
+            # Only rule, keywords, tags. This does not set relationship with news_data
+            save_scraping_rules_into_database("my_focus_news", scraping_rules)
+            # read from db again in order to get rule_id
+            rules_from_db = read_rules_from_db_connection(conn)
+            news_from_db = _read_news_from_db(conn, db_api, scraping_rules)
+
+            rule_id_map = {value: key for key, value in rules_from_db.items()}
+
+            for news_id, news in news_from_db.items():
+                for rule, score in news.rule_score_map.items():
+                    rule_id = rule_id_map[rule]
+                    db_api._setup_news_rule_relationship(news_id, rule_id, score)
 
     # Get news from RSS feeds and apply rules
     news_entries = get_news_entries(MAX_WORKERS, RSS_WORKER_TIMEOUT)
@@ -125,8 +168,8 @@ def main():
         news_data.get_target_news_by_scraping_rules(news_entries, scraping_rules)
     )
 
-    save_data_into_database(
-        "my_focus_news", scraping_rules=scraping_rules, news_entries=target_news
+    save_news_data_into_database(
+        "my_focus_news", news_entries=target_news
     )
 
     logging.info(

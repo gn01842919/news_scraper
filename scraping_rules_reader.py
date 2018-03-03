@@ -101,8 +101,6 @@ def read_rules_from_db_connection(conn):
     keywords_rows = conn.execute_sql_command(keywords_query)
     tags_rows = conn.execute_sql_command(tags_query)
 
-    rules_map = {}
-
     rules_map = {
         rule_id: ScrapingRule(name=rule_name, is_active=is_active)
         for (rule_id, is_active, rule_name) in rules_rows
@@ -114,7 +112,7 @@ def read_rules_from_db_connection(conn):
     for (rule_id, tag_name) in tags_rows:
         rules_map[rule_id].tags.add(tag_name)
 
-    return rules_map.values()
+    return rules_map
 
 
 def read_rules_from_file(filename):
@@ -208,8 +206,5 @@ if __name__ == '__main__':  # For test
         rules_from_db = read_rules_from_db_connection(conn)
 
     rules_from_file = read_rules_from_file('test.rule')
-
-    print(rules_from_db)
-    print(rules_from_file)
 
     print(set(rules_from_file) == set(rules_from_db))

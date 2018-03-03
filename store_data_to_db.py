@@ -13,7 +13,7 @@ class NewsDatabaseAPI(object):
         self.conn = conn
         self.table_prefix = table_prefix
 
-    def reset_scraping_rules(self):
+    def reset_scraping_rules_and_relations(self):
         # delete relationships
         self._reset_table("newsdata_rules")
         self._reset_table("scoremap")
@@ -66,12 +66,19 @@ class NewsDatabaseAPI(object):
             last_modified_time=curr_time
         )
         for rule in news.rule_score_map:
-            self._setup_news_rule_relationship(news, rule)
+            news_id = self._get_id_field_from_db("newsdata", url=news.link)
+            rule_id = self._get_id_field_from_db("scrapingrule", name=rule.name)
+            score = news.rule_score_map[rule]
+            self._setup_news_rule_relationship(news_id, rule_id, score)
 
-    def _setup_news_rule_relationship(self, news, rule):
+    # def update_scoremap_in_db(self, news_id, rule_id, score):
+    #     self._update_table_entry(
+    #         "scoremap",
+    #         {"weight": score},
+    #         {"news_id": news_id, "rule_id": rule_id}
+    #     )
 
-        news_id = self._get_id_field_from_db("newsdata", url=news.link)
-        rule_id = self._get_id_field_from_db("scrapingrule", name=rule.name)
+    def _setup_news_rule_relationship(self, news_id, rule_id, score):
 
         self._insert_data_into_table(
             "newsdata_rules", newsdata_id=news_id, scrapingrule_id=rule_id
@@ -81,7 +88,7 @@ class NewsDatabaseAPI(object):
             "scoremap",
             news_id=news_id,
             rule_id=rule_id,
-            weight=news.rule_score_map[rule]
+            weight=score
         )
 
     def _store_a_keyword_to_db(self, keyword_name, to_include, rule_id):
@@ -132,9 +139,14 @@ class NewsDatabaseAPI(object):
             self.conn.insert_values_into_table(table_name, kwargs)
         except IntegrityError as e:
             if 'duplicate key value violates unique constraint' in str(e):
-                logging.debug(str(e))
+                # logging.debug(str(e))
+                pass
             else:
                 raise
+
+    def _update_table_entry(self, table_name, args_map, conditions):
+        table_name = self._add_table_prefix(table_name)
+        self.conn.update_table(table_name, args_map, conditions)
 
     def _add_table_prefix(self, table_name):
         return self.table_prefix + table_name

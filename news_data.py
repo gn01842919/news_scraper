@@ -15,7 +15,10 @@ def get_target_news_by_scraping_rules(news_entries, scraping_rules):
 
 
 class NewsRSSEntry(object):
-    def __init__(self, title, description, link, published_time, source, category=None, tags=None):
+    def __init__(
+        self, title, description, link, published_time, source,
+        category=None, tags=None, rules=None
+    ):
         self.title = title
         self.description = description
         self.link = link
@@ -23,6 +26,9 @@ class NewsRSSEntry(object):
         self.source = source
         self.rule_score_map = {}  # rule ==> score, will be set in news_collector.py
         self.tags = tags.copy() if tags else set()  # .copy() -> shallow copy
+
+        if rules:
+            self.set_rules(rules)
 
         # Category defined by RSS feed link
         if category:

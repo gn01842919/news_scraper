@@ -1,3 +1,13 @@
+RULE 自強號動態
+    INCLUDE 自強號
+    INCLUDE 延誤
+    INCLUDE 台鐵
+
+    EXCLUDE 區間
+
+    TAG 交通
+    TAG 上班 遲到
+END-OF-RULE
 
 
 
@@ -5,17 +15,4 @@ RULE 中華民國總統
     INCLUDE 總統
     INCLUDE 蔡英文
     TAG 台灣政治
-END-OF-RULE
-
-
-
-RULE 自強號動態
-    INCLUDE 自強號
-    INCLUDE 延誤
-    INCLUDE 台鐵
-
-    EXCLUDE 狗狗
-
-    TAG 交通
-    TAG 上班 遲到
 END-OF-RULE
