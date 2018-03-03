@@ -3,4 +3,3 @@ __pycache__
 output.txt
 local_news_sources-tmp.txt
 local_news_sources.txt
-db_operation_api/
