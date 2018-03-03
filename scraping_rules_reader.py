@@ -4,19 +4,32 @@
 # Standard library
 import datetime
 # Local modules
-from scraper_utils import NewsScrapperError
+import scraper_utils
 
 
-class ScrapingRuleFormatError(NewsScrapperError):
+class ScrapingRuleFormatError(scraper_utils.NewsScrapperError):
     pass
 
 
 class ScrapingRule(object):
-    def __init__(self, name):
+    def __init__(self, name, inc_kw=None, exc_kw=None, tags=None, is_active=True):
         self.name = name
-        self.included_keywords = set()
-        self.excluded_keywords = set()
-        self.tags = set()
+        self.included_keywords = inc_kw if inc_kw else set()
+        self.excluded_keywords = exc_kw if exc_kw else set()
+        self.tags = tags if tags else set()
+        self.active = is_active
+
+    def add_keyword(self, keyword_name, to_include):
+        if not isinstance(to_include, bool):
+            raise scraper_utils.NewsScrapperError(
+                "Parameter to_include in add_keyword() is invalid: '%s'"
+                % repr(to_include)
+            )
+
+        if to_include:
+            self.included_keywords.add(keyword_name)
+        else:
+            self.excluded_keywords.add(keyword_name)
 
     def __repr__(self):
 
@@ -34,9 +47,74 @@ class ScrapingRule(object):
     def __str__(self):
         return "<ScrapingRule '%s'>" % self.name
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, self.__class__) and
+            self.name == other.name and
+            self.included_keywords == other.included_keywords and
+            self.excluded_keywords == other.excluded_keywords and
+            self.tags == other.tags
+        )
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        # __eq__ makes this object unhashable
+        # set() is also unhashable
+        return hash(
+            (  # tuple of attributes
+                self.name,
+                tuple(self.included_keywords),
+                tuple(self.excluded_keywords),
+                tuple(self.tags)
+            )
+        )
+
 
 def _extract_name_from_rule_statement(line, syntax):
     return line.replace(syntax, '').strip()
+
+
+def read_rules_from_db_connection(conn):
+    if not conn.table_already_exists("shownews_scrapingrule"):
+        scraper_utils.log_warning("Table 'shownews_scrapingrule' does not exists in the database.")
+        return {}
+
+    rules_query = "SELECT * FROM shownews_scrapingrule;"
+
+    keywords_query = (
+        "SELECT rule_kw.scrapingrule_id, kw.name, kw.to_include "
+        "FROM shownews_scrapingrule_keywords AS rule_kw "
+        "INNER JOIN shownews_newskeyword AS kw "
+        "ON rule_kw.newskeyword_id = kw.id;"
+    )
+
+    tags_query = (
+        "SELECT rule_tag.scrapingrule_id, tag.name "
+        "FROM shownews_scrapingrule_tags AS rule_tag "
+        "INNER JOIN shownews_newscategory AS tag "
+        "ON rule_tag.newscategory_id = tag.id;"
+    )
+
+    rules_rows = conn.execute_sql_command(rules_query)
+    keywords_rows = conn.execute_sql_command(keywords_query)
+    tags_rows = conn.execute_sql_command(tags_query)
+
+    rules_map = {}
+
+    rules_map = {
+        rule_id: ScrapingRule(name=rule_name, is_active=is_active)
+        for (rule_id, is_active, rule_name) in rules_rows
+    }
+
+    for rule_id, keyword_name, to_include in keywords_rows:
+        rules_map[rule_id].add_keyword(keyword_name, to_include)
+
+    for (rule_id, tag_name) in tags_rows:
+        rules_map[rule_id].tags.add(tag_name)
+
+    return rules_map.values()
 
 
 def read_rules_from_file(filename):
@@ -125,6 +203,12 @@ def read_rules_from_file(filename):
 
 
 if __name__ == '__main__':  # For test
+    from db_operation_api.mydb import PostgreSqlDB
+    with PostgreSqlDB(database="my_focus_news") as conn:
+        read_rules_from_db_connection(conn)
+
+    exit(0)
+
 
     rules = read_rules_from_file('test.rule')
 
