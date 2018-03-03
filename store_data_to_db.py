@@ -13,6 +13,17 @@ class NewsDatabaseAPI(object):
         self.conn = conn
         self.table_prefix = table_prefix
 
+    def reset_scraping_rules(self):
+        # delete relationships
+        self._reset_table("newsdata_rules")
+        self._reset_table("scoremap")
+        self._reset_table("scrapingrule_keywords")
+        self._reset_table("scrapingrule_tags")
+        # delete rules
+        self._reset_table("newskeyword")
+        self._reset_table("newscategory")
+        self._reset_table("scrapingrule")
+
     def store_a_scraping_rule_to_db(self, rule):
 
         if not isinstance(rule, ScrapingRule):
@@ -98,7 +109,7 @@ class NewsDatabaseAPI(object):
         )
 
     def _get_id_field_from_db(self, table_name, **kwargs):
-        table_name = self._add_table_name_prefix(table_name)
+        table_name = self._add_table_prefix(table_name)
         rows = self.conn.get_field_by_conditions(table_name, "id", kwargs)
         if rows:
             return rows[0][0]
@@ -108,9 +119,13 @@ class NewsDatabaseAPI(object):
                 .format(table_name, kwargs)
             )
 
+    def _reset_table(self, table_name):
+        table_name = self._add_table_prefix(table_name)
+        self.conn.reset_table(table_name)
+
     def _insert_data_into_table(self, table_name, **kwargs):
         try:
-            table_name = self._add_table_name_prefix(table_name)
+            table_name = self._add_table_prefix(table_name)
             self.conn.insert_values_into_table(table_name, kwargs)
         except IntegrityError as e:
             if 'duplicate key value violates unique constraint' in str(e):
@@ -118,5 +133,5 @@ class NewsDatabaseAPI(object):
             else:
                 raise
 
-    def _add_table_name_prefix(self, table_name):
+    def _add_table_prefix(self, table_name):
         return self.table_prefix + table_name
