@@ -29,8 +29,6 @@ def get_target_news_by_scraping_rules(news_entries, scraping_rules):
 
 
 def save_scraping_rules_into_database(db_api, scraping_rules):
-    # The sequence is essential
-    # MUST store scraping_rules first, news_entries latter!
     for rule in scraping_rules:
         db_api.store_a_scraping_rule(rule)
 

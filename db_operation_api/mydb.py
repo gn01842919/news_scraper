@@ -60,17 +60,24 @@ class MyDB(object):
 
         self.execute_sql_command(query, *args)
 
-    def get_field_by_conditions(self, table_name, field_name, args_map):
+    def get_fields_by_conditions(self, table_name, field_list, condition_map=None):
 
-        conditions = " AND ".join(
-            "{} = %s".format(key) for key in args_map.keys()
-        )
+        if condition_map:
+            conditions = " WHERE " + " AND ".join(
+                "{} = %s".format(key) for key in condition_map.keys()
+            )
+            args = (val for val in condition_map.values())
+        else:
+            conditions = ""
+            args = ()
 
-        args = (val for val in args_map.values())
+        fields = ', '.join(field_list)
+
         query = (
-            "SELECT {} FROM {} WHERE {};"
-            .format(field_name, table_name, conditions)
+            "SELECT {} FROM {} {};"
+            .format(fields, table_name, conditions)
         )
+
         rows = self.execute_sql_command(query, *args)
         return rows
 

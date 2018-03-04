@@ -4,8 +4,7 @@ from datetime import datetime
 import pytz
 from psycopg2 import IntegrityError
 # Local modules
-from scraper_models import NewsRSSEntry
-from scraper_models import ScrapingRule
+from scraper_models import NewsRSSEntry, ScrapingRule
 import scraper_utils
 
 
@@ -14,22 +13,33 @@ class NewsDatabaseAPI(object):
         self.conn = conn
         self.table_prefix = table_prefix
 
-    def get_news_data(self, rules):
-        query = "SELECT id, title, content, url, time from shownews_newsdata;"
-        rows = self.conn.execute_sql_command(query)
+    def get_news_data(self, scraping_rules):
+        # query = "SELECT id, title, content, url, time from shownews_newsdata;"
+        # rows = self.conn.execute_sql_command(query)
+
+        rows = self.conn.get_fields_by_conditions(
+            "shownews_newsdata",
+            ("id", "title", "content", "url", "time",)
+        )
 
         return {
-            id: NewsRSSEntry(title, content, url, pub_time, '', rules=rules)
+            id: NewsRSSEntry(title, content, url, pub_time, '', rules=scraping_rules)
             for id, title, content, url, pub_time in rows
         }
 
     def get_scraping_rules(self):
         if not self.conn.table_already_exists("shownews_scrapingrule"):
-            scraper_utils.log_warning("Table 'shownews_scrapingrule' does not exists in the database.")
+            scraper_utils.log_warning(
+                "Table 'shownews_scrapingrule' does not exists in the database."
+            )
             return {}
 
-        rules_query = "SELECT * FROM shownews_scrapingrule;"
-        rules_rows = self.conn.execute_sql_command(rules_query)
+        # rules_query = "SELECT * FROM shownews_scrapingrule;"
+        # rules_rows = self.conn.execute_sql_command(rules_query)
+        rules_rows = self.conn.get_fields_by_conditions(
+            "shownews_scrapingrule",
+            ("*",)
+        )
 
         rules_map = {
             rule_id: ScrapingRule(name=rule_name, is_active=is_active)
@@ -178,7 +188,7 @@ class NewsDatabaseAPI(object):
 
     def _get_id_field(self, table_name, **kwargs):
         table_name = self._add_table_prefix(table_name)
-        rows = self.conn.get_field_by_conditions(table_name, "id", kwargs)
+        rows = self.conn.get_fields_by_conditions(table_name, ("id",), kwargs)
         if rows:
             return rows[0][0]
         else:
