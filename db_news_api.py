@@ -13,7 +13,7 @@ class NewsDatabaseAPI(object):
         self.conn = conn
         self.table_prefix = table_prefix
 
-    def get_news_data(self, scraping_rules):
+    def get_news_data_and_setup_rule(self, scraping_rules):
         # query = "SELECT id, title, content, url, time from shownews_newsdata;"
         # rows = self.conn.execute_sql_command(query)
 
@@ -54,7 +54,7 @@ class NewsDatabaseAPI(object):
 
         return rules_map
 
-    def reset_scraping_rules_and_relations(self):
+    def remove_scraping_rules_and_relations(self):
         # delete relationships
         self._reset_table("newsdata_rules")
         self._reset_table("scoremap")
