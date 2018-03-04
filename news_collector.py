@@ -106,7 +106,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format=log_format)
 
     # Get scraping rules
-    rules_from_file = get_rules_from_file('test.rule')
+    rules_from_file = tuple(get_rules_from_file('rule.json'))
 
     with PostgreSqlDB(database="my_focus_news") as conn:
         db_api = NewsDatabaseAPI(conn, table_prefix="shownews_")
@@ -141,12 +141,12 @@ def main():
         )
         _save_news_data_into_database(db_api, target_news)
 
+    for news in target_news:
+        print(repr(news))
+
     logging.info(
         'Record %d news out of total %d news.' % (len(target_news), len(news_entries))
     )
-
-    for news in target_news:
-        print(repr(news))
 
     logging.info("Done. Elapsed time: %f seconds" % (timer() - start_time))
 
