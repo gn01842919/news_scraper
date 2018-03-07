@@ -17,9 +17,13 @@ class ScrapingRuleFormatError(scraper_utils.NewsScrapperError):
 
 def get_rules_from_file(filename):
     configs = _read_json_from_file(filename)
-
+    name_set = set()
     for config in configs:
         name, included_kw, excluded_kw, tags = _get_attributes_from_config(config)
+        if name in name_set:
+            raise ScrapingRuleFormatError("Rule names must be unique.")
+
+        name_set.add(name)
         yield ScrapingRule(
             name=name,
             inc_kw=set(included_kw),

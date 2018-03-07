@@ -54,6 +54,10 @@ class NewsSource(object, metaclass=NewsMeta):
     def _get_rss_url(self, category):
         return self.rss_map[category]
 
+    def _add_rss_link_for_strange_format_ones(self, rss_map_to_add):
+        self.categories.extend(key for key in rss_map_to_add.keys())
+        self.rss_map.update(rss_map_to_add)
+
 
 class GoogleNews(NewsSource):
     def __init__(self):
@@ -74,8 +78,7 @@ class GoogleNews(NewsSource):
         other_rss_map = {
             'Taiwan': self.base_url + 'NATION.zh-TW_tw/%E5%8F%B0%E7%81%A3?ned=tw&hl=zh-tw&gl=TW',
         }
-        self.categories.extend(key for key in other_rss_map.keys())
-        self.rss_map.update(other_rss_map)
+        super()._add_rss_link_for_strange_format_ones(other_rss_map)
 
 
 class YahooNews(NewsSource):
@@ -88,12 +91,19 @@ class YahooNews(NewsSource):
         self.feed_parser = rss_feed_parsers.YahooFeedParser
 
     def _add_stock_rss_links(self):
-        '''
-        Todo:
-          https://tw.info.yahoo.com/rss/
-            -> Stock related ones such as http://tw.stock.yahoo.com/rss/url/d/e/N2.html
-        '''
-        pass
+        base_url = 'https://tw.stock.yahoo.com/rss/url/d/e/'
+        stock_rss_map = {
+            'N3': base_url + 'N2.html',
+            'N3': base_url + 'N3.html',
+            'N4': base_url + 'N4.html',
+            'N7': base_url + 'N7.html',
+            'N11': base_url + 'N1.html',
+            'R2': base_url + 'R2.html',
+            'R3': base_url + 'R3.html',
+            'R4': base_url + 'R4.html',
+            'R6': base_url + 'R6.html',
+        }
+        self._add_rss_link_for_strange_format_ones(stock_rss_map)
 
 
 if __name__ == '__main__':  # For test
