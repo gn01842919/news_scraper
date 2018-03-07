@@ -7,14 +7,94 @@ from timeit import default_timer as timer
 from urllib.error import HTTPError, URLError
 # Local modules
 import scraper_utils
+from scraper_config import NewsCollectorConfig
+from db_news_api import NewsDatabaseAPI
+from db_operation_api.mydb import PostgreSqlDB
 from local_news_parsers import update_local_news_sources_list
 from news_sources import news_source_registry
 from scraping_rules_reader import get_rules_from_file
-from db_news_api import NewsDatabaseAPI
-from db_operation_api.mydb import PostgreSqlDB
 
-MAX_WORKERS = 10
-RSS_WORKER_TIMEOUT = 120
+
+def collect_news_by_rules_and_save_to_db():
+
+    debug = NewsCollectorConfig.DEBUG
+    db_name = NewsCollectorConfig.DB_NAME
+    table_prefix = NewsCollectorConfig.DB_TABLE_PREFIX
+    rule_file = NewsCollectorConfig.RULE_FILE_NAME
+
+    start_time = timer()
+
+    # Set up loggers
+    log_format = "[%(levelname)s] %(message)s\n"
+    scraper_utils.setup_logger(
+        'error_log',
+        level=logging.WARNING,
+        logfile='error.log',
+        to_console=False,
+        log_format=log_format
+    )
+    logging.basicConfig(level=logging.INFO, format=log_format)
+
+    # Get scraping rules
+    rules_from_file = tuple(get_rules_from_file(rule_file))
+
+    with PostgreSqlDB(database=db_name) as conn:
+        db_api = NewsDatabaseAPI(conn, table_prefix=table_prefix)
+
+        rules_from_db = db_api.get_scraping_rules()
+
+        # If rules have changed ==> update scores in DB
+        if set(rules_from_file) != set(rules_from_db.values()):
+            logging.info("ScrapingRules have changed. Reload rules to DB.")
+
+            db_api.remove_scraping_rules_and_relations()
+            _save_scraping_rules_to_db(db_api, rules_from_file)
+
+            _update_scores_with_new_rules_for_all_news_in_db(db_api, rules_from_file)
+
+        # Get news from RSS feeds and apply rules
+        news_entries = _retrieve_news_entries_and_set_scraping_rules(rules_from_file)
+
+        # Filter the news by the rules (So target_news is the news of interest)
+        target_news = tuple(
+            news for news in news_entries if news.total_score > 0
+        )
+
+        # Save to db
+        _save_news_data_to_db(db_api, target_news)
+
+    if debug:
+        # For future development
+        logging.info("Updating 'local_news_sources.txt'...")
+        update_local_news_sources_list(news_entries, 'local_news_sources.txt')
+
+        # Record all news for debugging
+        with open('output.txt', 'w') as f:
+            for news in news_entries:
+                print(repr(news), file=f)
+
+        for news in target_news:
+            print(repr(news))
+
+    logging.info(
+        'Recorded %d news out of total %d news.' % (len(target_news), len(news_entries))
+    )
+
+    logging.info("Elapsed time: %f seconds" % (timer() - start_time))
+
+
+def _retrieve_news_entries_and_set_scraping_rules(scraping_rules):
+    feeds = _retrieve_registered_news_by_rss()
+    news_entries = tuple(entry for feed in feeds for entry in feed.entries)
+    for news in news_entries:
+        news.set_rules(scraping_rules)
+
+    return news_entries
+
+
+def _save_scraping_rules_to_db(db_api, scraping_rules):
+    for rule in scraping_rules:
+        db_api.store_a_scraping_rule(rule)
 
 
 def _update_scores_with_new_rules_for_all_news_in_db(db_api, new_rules_to_apply):
@@ -29,33 +109,14 @@ def _update_scores_with_new_rules_for_all_news_in_db(db_api, new_rules_to_apply)
             db_api._setup_news_rule_relationship(news_id, rule_id, score)
 
 
-def _set_rules_to_news_entries(news_entries, scraping_rules):
-    for entry in news_entries:
-        entry.set_rules(scraping_rules)
-
-
-def _get_target_news_by_scraping_rules(news_entries, scraping_rules):
-    for news in news_entries:
-        if news.total_score > 0:
-            yield news
-
-
-def _save_scraping_rules_into_db(db_api, scraping_rules):
-    for rule in scraping_rules:
-        db_api.store_a_scraping_rule(rule)
-
-
-def _save_news_data_into_database(db_api, news_entries):
+def _save_news_data_to_db(db_api, news_entries):
     for news in news_entries:
         db_api.store_a_news_data(news)
 
 
-def _get_news_entries(num_of_workers, worker_timeout):
-    feeds = _retrieve_registered_news_by_rss(num_of_workers, worker_timeout)
-    return tuple(entry for feed in feeds for entry in feed.entries)
-
-
-def _retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
+def _retrieve_registered_news_by_rss(
+        num_of_workers=NewsCollectorConfig.MAX_WORKERS,
+        worker_timeout=NewsCollectorConfig.RSS_WORKER_TIMEOUT):
     """Retrieve RSS news by a thread pool
     """
 
@@ -91,65 +152,5 @@ def _retrieve_registered_news_by_rss(num_of_workers, worker_timeout):
             scraper_utils.log_warning("Timeout in news_collector: %s" % str(e))
 
 
-def main():
-    start_time = timer()
-
-    # Set up loggers
-    log_format = "[%(levelname)s] %(message)s\n"
-    scraper_utils.setup_logger(
-        'error_log',
-        level=logging.WARNING,
-        logfile='error.log',
-        to_console=False,
-        log_format=log_format
-    )
-    logging.basicConfig(level=logging.INFO, format=log_format)
-
-    # Get scraping rules
-    rules_from_file = tuple(get_rules_from_file('rule.json'))
-
-    with PostgreSqlDB(database="my_focus_news") as conn:
-        db_api = NewsDatabaseAPI(conn, table_prefix="shownews_")
-
-        rules_from_db = db_api.get_scraping_rules()
-
-        # If rules have changed ==> update scores in DB
-        if set(rules_from_file) != set(rules_from_db.values()):
-            logging.info("ScrapingRules have changed. Reload rules to DB.")
-
-            db_api.remove_scraping_rules_and_relations()
-            _save_scraping_rules_into_db(db_api, rules_from_file)
-
-            _update_scores_with_new_rules_for_all_news_in_db(db_api, rules_from_file)
-
-        # Get news from RSS feeds and apply rules
-        news_entries = _get_news_entries(MAX_WORKERS, RSS_WORKER_TIMEOUT)
-        _set_rules_to_news_entries(news_entries, rules_from_file)
-
-        # Recored local news sources for future development
-        logging.info("Updating 'local_news_sources.txt'...")
-        update_local_news_sources_list(news_entries, 'local_news_sources.txt')
-
-        # Record all news for debugging
-        with open('output.txt', 'w') as f:
-            for news in news_entries:
-                print(repr(news), file=f)
-
-        # Filter the news by the rules (So target_news is the news of interest)
-        target_news = tuple(
-            _get_target_news_by_scraping_rules(news_entries, rules_from_file)
-        )
-        _save_news_data_into_database(db_api, target_news)
-
-    for news in target_news:
-        print(repr(news))
-
-    logging.info(
-        'Record %d news out of total %d news.' % (len(target_news), len(news_entries))
-    )
-
-    logging.info("Done. Elapsed time: %f seconds" % (timer() - start_time))
-
-
 if __name__ == '__main__':
-    main()
+    collect_news_by_rules_and_save_to_db()

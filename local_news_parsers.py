@@ -81,7 +81,7 @@ class LocalNewsMeta(type):
 
 class HtmlNewsParser(object, metaclass=LocalNewsMeta):
     """
-    Should not be instanciated directly.
+    Should NOT be instanciated directly.
     """
     source_base_urls = []
 

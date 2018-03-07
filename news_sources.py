@@ -97,7 +97,7 @@ class YahooNews(NewsSource):
             'N3': base_url + 'N3.html',
             'N4': base_url + 'N4.html',
             'N7': base_url + 'N7.html',
-            'N11': base_url + 'N1.html',
+            'N11': base_url + 'N11.html',
             'R2': base_url + 'R2.html',
             'R3': base_url + 'R3.html',
             'R4': base_url + 'R4.html',

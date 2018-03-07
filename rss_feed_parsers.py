@@ -12,63 +12,10 @@ import feedparser
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 # Local modules
+from scraper_config import FeedParserConfig
 import local_news_parsers
 import scraper_utils
 from scraper_models import NewsRSSEntry, RssFeed
-
-
-MAX_WORKERS = 10
-HTML_PARSER_WORKER_TIMEOUT = 60
-
-
-def get_raw_feed_obj(url):
-    # 'feedparser' does not raise exceptions when RSS url returns 404 Error
-    # So use urlopen() to force raising HTTPError or URLError
-    with urlopen(url):
-        pass
-
-    return feedparser.parse(url)
-
-
-def _get_news_source_website_name_by_feed_title(title):
-
-    title = title.lower()
-
-    if 'google' in title:
-        return 'google'
-    elif 'yahoo' in title:
-        return 'yahoo'
-    else:
-        return 'others'
-
-
-def _generate_description_from_local_news_source_by_parser(
-    news_title, news_source, local_news_link, html_parser
-):
-
-    try:
-        description = html_parser.get_news_content(local_news_link).strip()
-    except HTTPError as e:
-        scraper_utils.log_warning("HTTP Error %d for local news '%s'" % (e.code, local_news_link))
-        return None
-    except URLError as e:
-        scraper_utils.log_warning("URL Error [%s] for local news '%s'" % (e.reason, local_news_link))
-        return None
-
-    return "(Extracted from '%s')\n%s" % (news_source, description)
-
-
-def _pickle_feed_object_to_file_for_unit_tests(url, feed):
-    # Used to generate input data for mock in unit test
-    import time.strftime
-    import pickle
-
-    filename = url.replace(':', '.').replace('/', '_').replace('?', '-')
-    filename = filename.replace('&', '-').replace('=', '_').replace('%', '_')
-
-    logging.info("Creating [%s] which contains pickle object of RSS feed.")
-    with open(filename + time.strftime('-%m%d') + '.txt', 'wb') as f:
-        pickle.dump(feed, f)
 
 
 class RSSFeedParser(object):
@@ -105,12 +52,7 @@ class RSSFeedParser(object):
         if not entries:
             return None
 
-        # logging.debug(
-        #     "RSS [%s %s] Processing %d news entries concurrently..."
-        #     % (news_source, category, len(entries))
-        # )
-
-        with futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        with futures.ThreadPoolExecutor(max_workers=FeedParserConfig.MAX_WORKERS) as executor:
             future_url_map = {}
 
             for entry in entries:
@@ -128,7 +70,7 @@ class RSSFeedParser(object):
 
             done_iter = futures.as_completed(
                 future_url_map,
-                timeout=HTML_PARSER_WORKER_TIMEOUT
+                timeout=FeedParserConfig.HTML_PARSER_WORKER_TIMEOUT
             )
             try:
                 for future_obj in done_iter:
@@ -298,3 +240,53 @@ class GoogleFeedParser(RSSFeedParser):
         scraper_utils.log_warning(msg)
 
         return feed.description
+
+
+def get_raw_feed_obj(url):
+    # 'feedparser' does not raise exceptions when RSS url returns 404 Error
+    # So use urlopen() to force raising HTTPError or URLError
+    with urlopen(url):
+        pass
+
+    return feedparser.parse(url)
+
+
+def _get_news_source_website_name_by_feed_title(title):
+
+    title = title.lower()
+
+    if 'google' in title:
+        return 'google'
+    elif 'yahoo' in title:
+        return 'yahoo'
+    else:
+        return 'others'
+
+
+def _generate_description_from_local_news_source_by_parser(
+    news_title, news_source, local_news_link, html_parser
+):
+
+    try:
+        description = html_parser.get_news_content(local_news_link).strip()
+    except HTTPError as e:
+        scraper_utils.log_warning("HTTP Error %d for local news '%s'" % (e.code, local_news_link))
+        return None
+    except URLError as e:
+        scraper_utils.log_warning("URL Error [%s] for local news '%s'" % (e.reason, local_news_link))
+        return None
+
+    return "(Extracted from '%s')\n%s" % (news_source, description)
+
+
+def _pickle_feed_object_to_file_for_unit_tests(url, feed):
+    # Used to generate input data for mock in unit test
+    import time.strftime
+    import pickle
+
+    filename = url.replace(':', '.').replace('/', '_').replace('?', '-')
+    filename = filename.replace('&', '-').replace('=', '_').replace('%', '_')
+
+    logging.info("Creating [%s] which contains pickle object of RSS feed.")
+    with open(filename + time.strftime('-%m%d') + '.txt', 'wb') as f:
+        pickle.dump(feed, f)

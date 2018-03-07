@@ -70,7 +70,7 @@ class NewsDatabaseAPI(object):
 
     def store_a_scraping_rule(self, rule):
         """
-        Only store Rule, Keywords, Tags into DB
+        Only store Rule, Keywords, Tags into DB.
         Does not handle relationship with NewsData.
         """
 
@@ -95,8 +95,7 @@ class NewsDatabaseAPI(object):
 
     def store_a_news_data(self, news):
         """
-        1. Store a NewsData to DB
-        2. Setup score and relationship with ScrapingRule
+        Store a NewsData to DB, and setup score and relationships with ScrapingRules.
         Note that scrapig rules should have exists in DB before this method is called.
         """
         if not isinstance(news, NewsRSSEntry):
