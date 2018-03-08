@@ -14,9 +14,6 @@ class NewsDatabaseAPI(object):
         self.table_prefix = table_prefix
 
     def get_news_data_and_setup_rule(self, scraping_rules):
-        # query = "SELECT id, title, content, url, time from shownews_newsdata;"
-        # rows = self.conn.execute_sql_command(query)
-
         rows = self.conn.get_fields_by_conditions(
             "shownews_newsdata",
             ("id", "title", "content", "url", "time",)
@@ -34,8 +31,6 @@ class NewsDatabaseAPI(object):
             )
             return {}
 
-        # rules_query = "SELECT * FROM shownews_scrapingrule;"
-        # rules_rows = self.conn.execute_sql_command(rules_query)
         rules_rows = self.conn.get_fields_by_conditions(
             "shownews_scrapingrule",
             ("*",)

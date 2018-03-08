@@ -16,9 +16,7 @@ from scraping_rules_reader import get_rules_from_file
 
 
 def collect_news_by_rules_and_save_to_db():
-
     debug = NewsCollectorConfig.DEBUG
-    db_name = NewsCollectorConfig.DB_NAME
     table_prefix = NewsCollectorConfig.DB_TABLE_PREFIX
     rule_file = NewsCollectorConfig.RULE_FILE_NAME
 
@@ -38,7 +36,15 @@ def collect_news_by_rules_and_save_to_db():
     # Get scraping rules
     rules_from_file = tuple(get_rules_from_file(rule_file))
 
-    with PostgreSqlDB(database=db_name) as conn:
+    db_config = {
+        "db_host": NewsCollectorConfig.DB_HOST,
+        "db_port": NewsCollectorConfig.DB_PORT,
+        "db_user": NewsCollectorConfig.DB_USER,
+        "db_password": NewsCollectorConfig.DB_PASSWORD,
+        "database": NewsCollectorConfig.DB_NAME,
+    }
+
+    with PostgreSqlDB(**db_config) as conn:
         db_api = NewsDatabaseAPI(conn, table_prefix=table_prefix)
 
         rules_from_db = db_api.get_scraping_rules()
