@@ -31,3 +31,7 @@
     * 與 Yahoo 不同的是，Google 新聞的 descripiton 幾乎都只有新聞的第一句話，因此不得不去抓原始新聞內容，而且 Google 提供了他真正的新聞來源，甚至提供了三個來自不同新聞來源的同個新聞。
 
 - 擴充可以處理的 local news 來源。
+
+- 有些新聞來源用程式抓取時遇到 403 錯誤，但我人工查看網頁卻正常。也許是需要載入 Javascript?
+  例子: https://www.thenewslens.com/article/90959
+  
