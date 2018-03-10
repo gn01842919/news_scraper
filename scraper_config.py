@@ -12,7 +12,8 @@ class NewsCollectorConfig(object):
     MAX_WORKERS = 10
     RSS_WORKER_TIMEOUT = 120
     RULE_FILE_NAME = "rule.json"
-    DB_HOST = "localhost"
+    ERROR_LOG = "error.log"
+    DB_HOST = "db"
     DB_PORT = 5432
     DB_USER = "dja1"
     DB_PASSWORD = "_MY_DB_PASSWORD_"

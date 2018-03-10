@@ -19,6 +19,7 @@ def collect_news_by_rules_and_save_to_db():
     debug = NewsCollectorConfig.DEBUG
     table_prefix = NewsCollectorConfig.DB_TABLE_PREFIX
     rule_file = NewsCollectorConfig.RULE_FILE_NAME
+    error_log = NewsCollectorConfig.ERROR_LOG
 
     start_time = timer()
 
@@ -27,7 +28,7 @@ def collect_news_by_rules_and_save_to_db():
     scraper_utils.setup_logger(
         'error_log',
         level=logging.WARNING,
-        logfile='error.log',
+        logfile=error_log,
         to_console=False,
         log_format=log_format
     )

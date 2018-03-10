@@ -34,4 +34,6 @@
 
 - 有些新聞來源用程式抓取時遇到 403 錯誤，但我人工查看網頁卻正常。也許是需要載入 Javascript?
   例子: https://www.thenewslens.com/article/90959
-  
+
+- 應能接受多個 rule 檔案。
+
