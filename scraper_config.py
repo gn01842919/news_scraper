@@ -1,4 +1,4 @@
-"""Configurations of "news_scraper"
+"""Configurations of the whole ``news_scraper`` package.
 """
 
 

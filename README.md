@@ -1,18 +1,39 @@
 # news_scrapper
+從網路抓取新聞，篩選出感興趣的新聞，並存入資料庫中。需搭配另一專案 [db_operation_api](https://github.com/gn01842919/db_operation_api)，並建議搭配專案 [news_scraper](https://github.com/gn01842919/news_scraper) 使用。
 
-### 主要功能:
+
+## 主要功能:
 讀取以下 RSS 來源:
 - Google News
 - Yahoo News
 
-抓取這些新聞的標題、連結、發布時間，以及新聞內容，儲存到資料庫中。
+抓取當中的新聞標題、連結、發布時間，以及新聞內容，並根據規則檔篩選，儲存到資料庫中。
 
-### 使用方法:
-1. 建立好資料庫。(依賴於 my_focus_news)
-2. python collect_news_to_db.py
+以 [Google World News](https://news.google.com/news/rss/headlines/section/topic/WORLD?ned=zh-tw_tw&hl=zh-tw&gl=TW) RSS 來源為例，當中每條新聞的 description 並不包含新聞的內容，而是三個報導同一條新聞的來源原始網站。
+此程式會從中選一，爬取原始新聞內文，並以新聞內文根據規則檔中的設定，給予每個新聞一個代表「相關性」的分數。若一個 <新聞，規則> 對應的分數為大於零，代表該規則認為該新聞為「相關」或「感興趣」。
 
 
-### To-Do:
+## 使用方法:
+1. 安裝並設定 PostgreSQL。
+
+2. 下載另一專案 [my_focus_news](https://github.com/gn01842919/my_focus_news) 並用其 manage.py 建立資料庫結構:
+    1. `git clone https://github.com/gn01842919/my_focus_news.git`
+    2. `pip install -r my_focus_news/deployment/requirements.txt`
+    3. `python my_focus_news/manage.py migrate`
+
+3. 下載此專案，以及 [db_operation_api](https://github.com/gn01842919/db_operation_api) :
+    1. `git clone https://github.com/gn01842919/news_scraper.git`
+    2. `pip install -r news_scraper/requirements.txt`
+    3. `cd news_scraper/ ; git clone https://github.com/gn01842919/db_operation_api.git`
+
+4. 撰寫規則檔 [rule.json](./rule.json)
+    - 設定檔為 JSON 格式。
+
+5. `python collect_news_to_db.py`
+    - 若要以排程執行，可改用 `python schedule.py`，預設為一小時執行一次。
+
+
+## To-Do:
 - 擴充設定檔:
     * 防止 exclude 屬性擋掉太多東西，例如只在內文出現一次的話，可以考慮放過他。
         * 用另一個屬性，叫 ensure_times_lower 之類的，設定最高允許次數。
@@ -37,3 +58,4 @@
 
 - 應能接受多個 rule 檔案。
 
+- 可由 news_scraper 建立所需的資料庫結構，讓此專案不必依賴 [news_scraper](https://github.com/gn01842919/news_scraper) 。
