@@ -1,4 +1,4 @@
-"""
+"""This module defines parsers to parse RSS feeds.
 """
 # Standard library
 import logging
@@ -18,10 +18,98 @@ import scraper_utils
 from scraper_models import NewsRSSEntry, RssFeed
 
 
+def get_raw_feed_obj(url):
+    """Checks that the url is valid, and retrieves the RSS feed by the url.
+
+    Args:
+        url (str): The RSS link to retrieve.
+
+    Returns:
+        dict: A dictionary representing the RSS feed.
+            For more details, please refer to `feedparser documentation`_
+
+    Raises:
+        HTTPError: If the HTTP errors occurrs when retrieving the RSS feed.
+        URLError: If the url is incorrect or has some problems.
+
+    .. _feedparser documentation:
+        https://pythonhosted.org/feedparser/introduction.html
+
+    """
+
+    # 'feedparser' does not raise exceptions when RSS url returns 404 Error
+    # So use urlopen() to force raising HTTPError or URLError
+    with urlopen(url):
+        pass
+
+    return feedparser.parse(url)
+
+
+def _get_news_source_website_name_by_feed_title(title):
+
+    title = title.lower()
+
+    if 'google' in title:
+        return 'google'
+    elif 'yahoo' in title:
+        return 'yahoo'
+    else:
+        return 'others'
+
+
+def _generate_description_from_local_news_source_by_parser(
+    news_title, news_source, local_news_link, html_parser
+):
+
+    try:
+        description = html_parser.get_news_content(local_news_link).strip()
+    except HTTPError as e:
+        scraper_utils.log_warning("HTTP Error %d for local news '%s'" % (e.code, local_news_link))
+        return None
+    except URLError as e:
+        scraper_utils.log_warning("URL Error [%s] for local news '%s'" % (e.reason, local_news_link))
+        return None
+
+    return "(Extracted from '%s')\n%s" % (news_source, description)
+
+
+def _pickle_feed_object_to_file_for_unit_tests(url, feed):
+    # Used to generate input data for mock in unit test
+    import time.strftime
+    import pickle
+
+    filename = url.replace(':', '.').replace('/', '_').replace('?', '-')
+    filename = filename.replace('&', '-').replace('=', '_').replace('%', '_')
+
+    logging.info("Creating [%s] which contains pickle object of RSS feed.")
+    with open(filename + time.strftime('-%m%d') + '.txt', 'wb') as f:
+        pickle.dump(feed, f)
+
+
 class RSSFeedParser(object):
+    """Base class for RSS feed parsers.
+
+    Can be instanciated directly, while it is recommended to inherit from this class.
+
+    """
 
     @classmethod
     def parse_feed(cls, feed, category=None):
+        """Parse a raw RSS feed, and extract interested information.
+
+        The extracted information includes all news entries inside the feed.
+
+        Args:
+            feed (dict): Raw RSS feed object.
+                Typically this can be obtained by calling ``get_raw_feed_obj()``.
+
+            category (str, optional): Category of the RSS source.
+                This will be added to news entries inside the RSS feed as tags.
+
+        Returns:
+            RssFeed: A RssFeed containing interested information of the raw RSS feed.
+
+        """
 
         # _pickle_feed_object_to_file_for_unit_tests(url, feed)
 
@@ -159,16 +247,32 @@ class RSSFeedParser(object):
 
 
 class YahooFeedParser(RSSFeedParser):
+    """RSS feed parser for Yahoo RSS news sources.
+    """
     pass
 
 
 class GoogleFeedParser(RSSFeedParser):
+    """RSS feed parser for Google RSS news sources.
+
+    Note that the description of news entries of Google RSS sources does not
+    contain the news content, but contains urls of local news sources.
+
+    So ``self._get_description()`` is overided to parse the local news
+    sources to the the news content.
+
+    """
 
     @staticmethod
     def _get_description(feed):
+        """Get description (news content) of the news.
 
-        # feed.description is a list of same news from different local sources
-        # Get the real news content from one of the local sources
+        For Google RSS news, feed.description is a list of same news
+        from different local sources.
+
+        This method gets the real news content from one of the local sources.
+
+        """
 
         bsobj = BeautifulSoup(feed.description, "html.parser")
         local_news_sources_li = bsobj.findAll("li")
@@ -240,53 +344,3 @@ class GoogleFeedParser(RSSFeedParser):
         scraper_utils.log_warning(msg)
 
         return feed.description
-
-
-def get_raw_feed_obj(url):
-    # 'feedparser' does not raise exceptions when RSS url returns 404 Error
-    # So use urlopen() to force raising HTTPError or URLError
-    with urlopen(url):
-        pass
-
-    return feedparser.parse(url)
-
-
-def _get_news_source_website_name_by_feed_title(title):
-
-    title = title.lower()
-
-    if 'google' in title:
-        return 'google'
-    elif 'yahoo' in title:
-        return 'yahoo'
-    else:
-        return 'others'
-
-
-def _generate_description_from_local_news_source_by_parser(
-    news_title, news_source, local_news_link, html_parser
-):
-
-    try:
-        description = html_parser.get_news_content(local_news_link).strip()
-    except HTTPError as e:
-        scraper_utils.log_warning("HTTP Error %d for local news '%s'" % (e.code, local_news_link))
-        return None
-    except URLError as e:
-        scraper_utils.log_warning("URL Error [%s] for local news '%s'" % (e.reason, local_news_link))
-        return None
-
-    return "(Extracted from '%s')\n%s" % (news_source, description)
-
-
-def _pickle_feed_object_to_file_for_unit_tests(url, feed):
-    # Used to generate input data for mock in unit test
-    import time.strftime
-    import pickle
-
-    filename = url.replace(':', '.').replace('/', '_').replace('?', '-')
-    filename = filename.replace('&', '-').replace('=', '_').replace('%', '_')
-
-    logging.info("Creating [%s] which contains pickle object of RSS feed.")
-    with open(filename + time.strftime('-%m%d') + '.txt', 'wb') as f:
-        pickle.dump(feed, f)

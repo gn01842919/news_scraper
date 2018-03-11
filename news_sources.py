@@ -1,4 +1,16 @@
-"""
+"""RSS news sources are written as code in this module.
+
+Attributes:
+    news_source_registry (dict): Registry of news sources.
+        <Key>: Name of the class.
+        <Value>: The news source class.
+
+        When writing a class that inherits the base class ``NewsSource``,
+        it is registered in ``news_source_registry`` automatically.
+
+        This can be imported by other modules to acquire news sources
+        that are currently supported.
+
 """
 # Local modules
 import scraper_utils
@@ -14,6 +26,10 @@ def _register_news_source(cls):
 
 
 class NewsMeta(type):
+    """Meta class for ``NewsSource`` to register subclasses.
+
+    To register classes except the base class to ``news_source_registry``.
+    """
     def __new__(meta, name, bases, class_dict):
         cls = type.__new__(meta, name, bases, class_dict)
 
@@ -25,6 +41,12 @@ class NewsMeta(type):
 
 
 class NewsSource(object, metaclass=NewsMeta):
+    """Base class for news sources.
+
+    Subclasses of this class are registered to ``news_source_registry``.
+    Note that this class can not be instanciated.
+
+    """
 
     def __init__(self):
         msg = "Do not instantiate class '%s'!" % self.__class__.__name__
@@ -32,23 +54,46 @@ class NewsSource(object, metaclass=NewsMeta):
         raise NotImplementedError(msg)
 
     def get_raw_feed_object(self, category):
+        """Get feed oject given a category of the RSS source.
+
+        Args:
+            category (str): Which category of the RSS source to retrieve.
+
+        Returns:
+            dict: A dictionary representing the RSS feed.
+                For more details, please refer to `feedparser documentation`_
+
+        .. _feedparser documentation:
+            https://pythonhosted.org/feedparser/introduction.html
+
+        """
         rss_url = self._get_rss_url(category)
 
         # This will get RSS content from web.
-        # Need to wait for IO
         raw_feed = rss_feed_parsers.get_raw_feed_obj(rss_url)
 
         # raw_feed_obj.feed.link may have stupid errors, such as:
         # https://news.google.coms/rss/headlines/section/topic/NATION.zh-TW_tw/%E5%8F%B0%E7%81%A3?ned=tw&hl=zh-tw&gl=TW
         # Note the "google.coms" <== stupid typing error
-        # So... do not use it, usr rss_url instead
+        # So... do not use it, use rss_url instead
         raw_feed.feed.link = rss_url
 
         return raw_feed
 
     def parse_feed(self, raw_feed, category):
-        # parse_feed may need to get news content from local news sources
-        # ==> need to wait for IO (web)
+        """Parse a raw RSS feed and extract necessary information.
+
+        Note that this will call ``rss_feed_parsers.RSSFeedParser.parse_feed``,
+        which will process news entries in the feed by a thread pool.
+
+        Args:
+            raw_feed (dict): The return value of ``self.get_raw_feed_object(category)``.
+            category (str): The category of the RSS source to parse.
+
+        Returns:
+            scraper_models.RssFeed: A class that contains only interested fields of a RSS feed.
+
+        """
         return self.feed_parser.parse_feed(raw_feed, category)
 
     def _get_rss_url(self, category):
@@ -60,6 +105,20 @@ class NewsSource(object, metaclass=NewsMeta):
 
 
 class GoogleNews(NewsSource):
+    """Google RSS news sources.
+
+    Args:
+        base_url (str): Base url for Google RSS news sources.
+
+        categories (list(str)): Categories of Google RSS news sources.
+            Each category corresponds to a RSS news source.
+
+        rss_map (dict): Key: A category. Value: URL of the RSS news source of the category.
+
+        feed_parser (rss_feed_parsers.GoogleFeedParser): The feed parser to parse RSS feeds.
+
+    """
+
     def __init__(self):
         self.base_url = 'https://news.google.com/news/rss/headlines/section/topic/'
         self.categories = [
@@ -82,6 +141,19 @@ class GoogleNews(NewsSource):
 
 
 class YahooNews(NewsSource):
+    """Yahoo RSS news sources.
+
+    Args:
+        base_url (str): Base url for Yahoo RSS news sources.
+
+        categories (list(str)): Categories of Yahoo RSS news sources.
+            Each category corresponds to a RSS news source.
+
+        rss_map (dict): Key: A category. Value: URL of the RSS news source of the category.
+
+        feed_parser (rss_feed_parsers.YahooFeedParser): The feed parser to parse RSS feeds.
+
+    """
 
     def __init__(self):
         self.base_url = 'https://tw.news.yahoo.com/rss/'

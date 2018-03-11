@@ -2,6 +2,9 @@
 
 If execute directly, will collect news immediately, and then periodically collects news.
 
+Example:
+    python schedule.py
+
 """
 # PyPI
 from apscheduler.schedulers.blocking import BlockingScheduler

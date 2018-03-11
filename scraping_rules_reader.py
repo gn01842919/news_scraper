@@ -1,4 +1,9 @@
-"""
+"""This module contains tools to read scraping_rules from a file.
+
+Attributes:
+    ESSENTIAL_ATTRIBUTES (tuple(str)) Attributes that a rule must have.
+    OPTIONAL_ATTRIBUTES (tuple(str)): Attributes that are optional.
+
 """
 
 # Standard library
@@ -7,15 +12,29 @@ import json
 import scraper_utils
 from scraper_models import ScrapingRule
 
-OPTIONAL_ATTRIBUTES = ("exclude", "include", "tags")
 ESSENTIAL_ATTRIBUTES = ("name",)
+OPTIONAL_ATTRIBUTES = ("exclude", "include", "tags")
 
 
 class ScrapingRuleFormatError(scraper_utils.NewsScrapperError):
+    """Indicates that a rule has invalid format.
+    """
     pass
 
 
 def get_rules_from_file(filename):
+    """Parse scraping rules from a file.
+
+    Args:
+        filename (str): File name of the rule file to parse.
+
+    Yields:
+        scraper_models.ScrapingRule: A scraping rule defined in the input file.
+
+    Raises:
+        ScrapingRuleFormatError: If a rule has invalid format.
+
+    """
     configs = _read_json_from_file(filename)
     name_set = set()
     for config in configs:
@@ -26,8 +45,8 @@ def get_rules_from_file(filename):
         name_set.add(name)
         yield ScrapingRule(
             name=name,
-            inc_kw=set(included_kw),
-            exc_kw=set(excluded_kw),
+            included_keywords=set(included_kw),
+            excluded_keywords=set(excluded_kw),
             tags=set(tags)
         )
 

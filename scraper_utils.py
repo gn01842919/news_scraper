@@ -16,7 +16,8 @@ def log_warning(msg, is_error=False):
 
     Args:
         msg (str): Error message to log.
-        is_error (bool, optional): True to log as error, and False (default) to log as warning.
+        is_error (bool, optional): True to log as an error, and
+            False (default) to log as a warning.
 
     Raises:
         NewsScrapperError: If a logger with name 'error_log' has not been set up.
@@ -42,12 +43,16 @@ def setup_logger(
 
     Args:
         name (str): Name of the logger to set up.
+
         level (int, optional): Default to logging.DEBUG.
+
         logfile (str, optional): Filename of the error log file.
             If specified, the error message will be written to the file.
             Defaults to None.
+
         to_console (bool, optional): Whether to log message to standard output.
             Defaults to True.
+
         log_format (str, optional): The log format. Default to ``default_log_format``.
 
     Returns:
@@ -97,6 +102,9 @@ class NewsScrapperError(RuntimeError):
     Error messages are logged to ``logging.getLogger('error_log')``
         with the ``logging.error()`` method.
     If the logger is not set, write msg to both stdout and a file named 'error.log'.
+
+    Attributes:
+        logger (logging.Logger): The logger named 'error_log'.
 
     Args:
         msg (str): Error message to log.

@@ -17,6 +17,6 @@ if __name__ == '__main__':
     }
 
     with PostgreSqlDB(**db_config) as conn:
-        db_api = NewsDatabaseAPI(conn, table_prefix=NewsCollectorConfig.DB_TABLE_PREFIX)
+        db_api = NewsDatabaseAPI(conn)
         db_api.remove_scraping_rules_and_relations()
         db_api.reset_news_data()

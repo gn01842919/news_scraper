@@ -1,9 +1,26 @@
-"""
+"""This module contains common data structures used in the package.
 """
 import scraper_utils
 
 
 class RssFeed(object):
+    """Data structure containing information of a RSS feed.
+
+    Args:
+        title (str): Title of the feed.
+
+        subtitle (str): Subtitle of the feed.
+
+        link (str): Url of the feed.
+
+        language (str): Language of the feed.
+
+        published_time (datetime.datetime): Published time of the feed.
+
+        entries (tuple(NewsRSSEntry)): News entries in this feed.
+
+    """
+
     def __init__(self, title, subtitle, link, language, published_time, entries):
         self.title = title
         self.subtitle = subtitle
@@ -31,6 +48,29 @@ class RssFeed(object):
 
 
 class NewsRSSEntry(object):
+    """Data structure representing a news entry in a RSS feed.
+
+    Args:
+        title (str): Title of the news.
+
+        description (str): Context or excerpt of the news.
+
+        link (str): Url of the news.
+
+        published_time (datetime.datetime): Published time of the news.
+
+        source (str): The news source (google or yahoo).
+
+        category (str, optional): Category of this news. Defaults to None.
+            This will be added to ``self.tags``.
+
+        tags (set, optional): Tags of the news. Defaults to None.
+
+        rules (Iterable, optional): ScrapingRules related to this news.
+            Defaults to None.
+
+    """
+
     def __init__(
         self, title, description, link, published_time, source,
         category=None, tags=None, rules=None
@@ -51,6 +91,19 @@ class NewsRSSEntry(object):
             self.tags.add(category)
 
     def set_rules(self, rules):
+        """Set scraping_rules to this news.
+
+        This method does:
+            1. computes scores which represents the relevance between
+               the rule and the news.
+            2. Constructs ``self.rule_score_map`` which maps a rule to a score.
+            3. Set up ``self.tags`` with related (whose score is greater than 0) rules.
+
+        Args:
+            rules (Iterable(ScrapingRule)): list of scraping_rules to decide whether
+            this news is of interested according to the rule.
+
+        """
         for rule in rules:
             score = self._compute_score_by_rule(rule)
             self.rule_score_map[rule] = score
@@ -58,6 +111,11 @@ class NewsRSSEntry(object):
 
     @property
     def total_score(self):
+        """Sum of positive scores of all rules.
+
+        Note that negative scores are excluded.
+
+        """
         if not self.rule_score_map:
             scraper_utils.log_warning('No scraping rule set for %s' % str(self))
 
@@ -129,14 +187,44 @@ class NewsRSSEntry(object):
 
 
 class ScrapingRule(object):
-    def __init__(self, name, inc_kw=None, exc_kw=None, tags=None, is_active=True):
+    """Data structure representing a rule to decide whether a news is of interest.
+
+    Args:
+        name (str): Name of the rule.
+
+        included_keywords (set(str)): Keywords used to judge if a news is of interest.
+            If a news contains any keyword in ``included_keywords``, the news is
+            possibly of intereste.
+
+        excluded_keywords (set(str)): Keywords used to decide that a news is
+            "not of interest".
+
+        tags (set(str)): The tag to attach to the news if a rule decides that
+            a news is of interested (score > 0).
+
+        is_active (bool, optional): Whether this rule is active. Defaults to True.
+
+    """
+
+    def __init__(
+        self, name, included_keywords=None, excluded_keywords=None, tags=None,
+        is_active=True
+    ):
         self.name = name
-        self.included_keywords = inc_kw if inc_kw else set()
-        self.excluded_keywords = exc_kw if exc_kw else set()
+        self.included_keywords = included_keywords if included_keywords else set()
+        self.excluded_keywords = excluded_keywords if excluded_keywords else set()
         self.tags = tags if tags else set()
         self.active = is_active
 
     def add_keyword(self, keyword_name, to_include):
+        """Add a keyword to this rule.
+
+        Args:
+            keyword_name (str): The keyword to add.
+            to_include (bool): If True, this keyword is of "included_keywords".
+                Otherwise, it is of "excluded_keywords"
+
+        """
         if not isinstance(to_include, bool):
             raise scraper_utils.NewsScrapperError(
                 "Parameter to_include in add_keyword() is invalid: '%s'"

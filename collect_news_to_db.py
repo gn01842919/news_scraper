@@ -1,4 +1,8 @@
-"""
+"""This module collects news, filter them by rules, and store them to DB.
+
+Example:
+    python collect_news_to_db.py
+
 """
 # Standard library
 import logging
@@ -16,8 +20,17 @@ from scraping_rules_reader import get_rules_from_file
 
 
 def collect_news_by_rules_and_save_to_db():
+    """Collect news, filter them by rules, and store them to DB.
+
+    This method does the following:
+        1. Read scraping rules from file.
+        2. Read scraping rules from DB.
+        3. If rules have changed, update the the rules in DB by rules from file.
+        4. Retrieve news data from RSS news links.
+        5. Filter the news by scraping rules, and save the result to DB.
+
+    """
     debug = NewsCollectorConfig.DEBUG
-    table_prefix = NewsCollectorConfig.DB_TABLE_PREFIX
     rule_file = NewsCollectorConfig.RULE_FILE_NAME
     error_log = NewsCollectorConfig.ERROR_LOG
 
@@ -46,7 +59,7 @@ def collect_news_by_rules_and_save_to_db():
     }
 
     with PostgreSqlDB(**db_config) as conn:
-        db_api = NewsDatabaseAPI(conn, table_prefix=table_prefix)
+        db_api = NewsDatabaseAPI(conn)
 
         rules_from_db = db_api.get_scraping_rules()
 
