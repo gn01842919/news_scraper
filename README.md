@@ -29,8 +29,10 @@
 4. 撰寫規則檔 [rule.json](./rule.json)
     - 設定檔為 JSON 格式。
 
-5. `python collect_news_to_db.py`
-    - 若要以排程執行，可改用 `python schedule.py`，預設為一小時執行一次。
+5. 依環境調整設定檔 [settings.py](./settings.py)
+
+6. `python collect_news_to_db.py`
+    - 若要以排程執行，可改用 `python schedule.py`，預設為每小時執行一次。
 
 
 ## To-Do:
