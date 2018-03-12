@@ -1,4 +1,8 @@
 """This module contains common data structures used in the package.
+
+The reason is that this modules contains data structures that
+are proper to break the conventions in my opinion.
+
 """
 import scraper_utils
 
@@ -71,10 +75,8 @@ class NewsRSSEntry(object):
 
     """
 
-    def __init__(
-        self, title, description, link, published_time, source,
-        category=None, tags=None, rules=None
-    ):
+    def __init__(self, title, description, link, published_time, source,
+                 category=None, tags=None, rules=None):
         self.title = title
         self.description = description
         self.link = link
@@ -150,11 +152,12 @@ class NewsRSSEntry(object):
             if keyword_occurrences_in_title > 0:
                 score += keyword_occurrences_in_title * 10
 
-            keyword_occurrences_in_description = self.description.count(keyword)
-            if keyword_occurrences_in_description > 0:
-                score += keyword_occurrences_in_description * 1
+            # keyword occurrences in description
+            kw_occurrences_in_desc = self.description.count(keyword)
+            if kw_occurrences_in_desc > 0:
+                score += kw_occurrences_in_desc * 1
 
-            if not keyword_occurrences_in_title and not keyword_occurrences_in_description:
+            if not keyword_occurrences_in_title and not kw_occurrences_in_desc:
                 # If any of the keywords does not appear, this news does not pass the rule
                 contains_all_keywords = False
 
@@ -206,10 +209,8 @@ class ScrapingRule(object):
 
     """
 
-    def __init__(
-        self, name, included_keywords=None, excluded_keywords=None, tags=None,
-        is_active=True
-    ):
+    def __init__(self, name, included_keywords=None,
+                 excluded_keywords=None, tags=None, is_active=True):
         self.name = name
         self.included_keywords = included_keywords if included_keywords else set()
         self.excluded_keywords = excluded_keywords if excluded_keywords else set()
@@ -261,7 +262,7 @@ class ScrapingRule(object):
         )
 
     def __ne__(self, other):
-        return not self == other
+        return self != other
 
     def __hash__(self):
         # __eq__ makes this object unhashable

@@ -8,7 +8,7 @@ Attributes:
 import logging
 import re
 
-default_log_format = '[%(levelname)s] [%(asctime)s] %(message)s\n'
+DEFAULT_LOG_FORMAT = '[%(levelname)s] [%(asctime)s] %(message)s\n'
 
 
 def log_warning(msg, is_error=False):
@@ -38,7 +38,7 @@ def setup_logger(
         level=logging.INFO,
         logfile=None,
         to_console=True,
-        log_format=default_log_format):
+        log_format=DEFAULT_LOG_FORMAT):
     """Set up ``logging.logger``
 
     Args:
@@ -53,7 +53,7 @@ def setup_logger(
         to_console (bool, optional): Whether to log message to standard output.
             Defaults to True.
 
-        log_format (str, optional): The log format. Default to ``default_log_format``.
+        log_format (str, optional): The log format. Default to ``DEFAULT_LOG_FORMAT``.
 
     Returns:
         logging.Logger: The logger object.
@@ -90,10 +90,37 @@ def extract_domain_name_from_url(link):
     base_url_pattern = re.compile('^https?://([a-zA-Z0-9.-]+)/')
     try:
         return base_url_pattern.match(link).group(1).lstrip('www.')
-    except AttributeError as e:
-        logging.getLogger('standard_output').warning(
-            'News link [{}] does not match base_url_pattern.'.format(link)
+    except AttributeError:
+        log_warning(
+            'News link [%s] does not match base_url_pattern.' % link
         )
+
+
+def read_json_from_file(filename):
+    """Read data in JSON format from file.
+
+    If the file does not exist yet, create an empty one, and return an empty dict.
+
+    Args:
+        filename (str): Name of the input file to read.
+
+    Returns:
+        dict: A JSON (dict) object.
+    """
+    import json
+
+    try:
+        with open(filename, 'r') as infile:
+            return json.loads(infile.read())
+
+    except FileNotFoundError:
+        log_warning("File '%s' not found." % filename)
+        return {}
+
+    except json.decoder.JSONDecodeError:
+        msg = "Fail to parse the content of file '%s' as JSON. " % filename
+        log_warning(msg)
+        return {}
 
 
 class NewsScrapperError(RuntimeError):
@@ -114,14 +141,20 @@ class NewsScrapperError(RuntimeError):
 
     def __init__(self, msg):
         cls = self.__class__
-
         if not cls.logger:
-            cls._setup_error_logger()
+            cls.setup_error_logger()
 
         cls.logger.error(msg)
 
+        super().__init__(msg)
+
     @classmethod
-    def _setup_error_logger(cls):
+    def setup_error_logger(cls):
+        """Set up logger for error log
+
+        If a logger with name 'error_log' does not exist yet, set it up.
+
+        """
         if 'error_log' in logging.Logger.manager.loggerDict:
             # The logger of name 'error_log' has been setup maybe by other modules.
             # Use the already existing one.

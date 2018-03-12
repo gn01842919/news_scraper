@@ -14,12 +14,12 @@ Purpose:
     the actual news source.
 
 Attributes:
-    parsers_registry (dict): Maps a domain name to a local news parser.
+    _PARSER_REGISTRY (dict): Maps domain names to local news parsers.
         <Key>: The domain name of the local news source.
         <Value>: The local news parser class.
 
         When writing a class that inherits the base class ``HtmlNewsParser``,
-        it is registered in ``parsers_registry`` automatically.
+        it is registered in ``_PARSER_REGISTRY`` automatically.
 
 """
 # Standard library
@@ -31,7 +31,7 @@ from bs4 import BeautifulSoup
 # Local modules
 import scraper_utils
 
-parsers_registry = {}
+_PARSER_REGISTRY = {}
 
 
 def update_local_news_sources_list(news_entries, filename):
@@ -50,7 +50,7 @@ def update_local_news_sources_list(news_entries, filename):
 
     """
 
-    local_news_sources = _read_local_news_sources_list_from_file(filename)
+    local_news_sources = scraper_utils.read_json_from_file(filename)
 
     for news in news_entries:
         news_hostname = scraper_utils.extract_domain_name_from_url(news.link)
@@ -61,28 +61,42 @@ def update_local_news_sources_list(news_entries, filename):
             local_news_sources[news_hostname] = 1
 
     # Sort the dict "local_news_sources" by values
-    local_news_sources = OrderedDict(
+    sorted_local_news_sources = OrderedDict(
         sorted(local_news_sources.items(), key=lambda x: x[1], reverse=True)
     )
 
-    with open(filename, 'w') as f:
-        f.write(json.dumps(local_news_sources, indent=True))
+    with open(filename, 'w') as outfile:
+        outfile.write(json.dumps(sorted_local_news_sources, indent=True))
+
+
+def get_local_parser_registry():
+    """Get the dict mapping domain names to local news parsers.
+
+    Returns:
+        dict: ``_PARSER_REGISTRY``
+
+    """
+    return _PARSER_REGISTRY
 
 
 def _register_local_source(name, cls):
-    global parsers_registry
-    parsers_registry[name] = cls
+    _PARSER_REGISTRY[name] = cls
 
 
-def _read_local_news_sources_list_from_file(filename):
+def _get_local_news_sources(filename):
+    """Read local news source list from file.
+
+    Returns:
+        dict: A JSON config.
+    """
     try:
-        with open(filename, 'r') as f:
-            return json.loads(f.read())
-    except FileNotFoundError as e:
+        with open(filename, 'r') as infile:
+            return json.loads(infile.read())
+    except FileNotFoundError:
         # Create an empty file
         open(filename, 'a').close()
         return {}
-    except json.decoder.JSONDecodeError as e:
+    except json.decoder.JSONDecodeError:
         msg = "Fail to parse the content of file '%s' as JSON. " % filename
         scraper_utils.log_warning(msg)
         return {}
@@ -91,13 +105,13 @@ def _read_local_news_sources_list_from_file(filename):
 class LocalNewsMeta(type):
     """Meta class for ``HtmlNewsParser`` to register subclasses.
 
-    To register <domain_name, parser_class> mappings to ``parsers_registry``.
+    To register <domain_name, parser_class> mappings to ``_PARSER_REGISTRY``.
 
     Note that the base class itself will not be registered.
 
     """
-    def __new__(meta, name, bases, class_dict):
-        cls = type.__new__(meta, name, bases, class_dict)
+    def __new__(mcs, name, bases, class_dict):
+        cls = type.__new__(mcs, name, bases, class_dict)
 
         # Skip the (abstract) base class (HtmlNewsParser)
         if bases != (object,):
@@ -110,7 +124,7 @@ class LocalNewsMeta(type):
 class HtmlNewsParser(object, metaclass=LocalNewsMeta):
     """Base class for local news parsers.
 
-    Subclasses of this class are registered to ``parsers_registry``.
+    Subclasses of this class are registered to ``_PARSER_REGISTRY``.
     Note that this class can not be instanciated.
 
     Attributes:
@@ -119,10 +133,21 @@ class HtmlNewsParser(object, metaclass=LocalNewsMeta):
     """
     source_base_urls = []
 
-    def get_news_content(
-        self, url, ancestor_tag=None, dict_ancestor_attr=None, raise_error=False
-    ):
+    def get_news_content_from_url(self, url):
         """Get news content from the local news source.
+
+        Args:
+            url (str): The link of the local news.
+
+        Returns:
+            str: News content of the local news.
+
+        """
+        return self._get_news_content(url)
+
+    def _get_news_content(self, url, ancestor_tag=None,
+                          dict_ancestor_attr=None, raise_error=False):
+        """Get news content from url.
 
         Args:
             url (str): The link of the local news.
@@ -180,10 +205,10 @@ class HtmlNewsParser(object, metaclass=LocalNewsMeta):
     def _get_news_content_by_default(self, url):
         try:
             news_content = self._get_news_content_by_meta_name(url, "description")
-        except (TypeError, KeyError) as e:
+        except (TypeError, KeyError):
             try:
                 news_content = self._get_news_content_by_meta_name(url, "Description")
-            except (TypeError, KeyError) as e:
+            except (TypeError, KeyError):
                 msg = (
                     "Try to get news content by meta description from [%s], but fail."
                     % url
@@ -264,7 +289,7 @@ class LtnHtmlNewsParser(HtmlNewsParser):
 
     source_base_urls = ['ltn.com.tw']
 
-    def get_news_content(self, url):
+    def get_news_content_from_url(self, url):
         """Get news content from the news link.
 
         Args:
@@ -279,14 +304,14 @@ class LtnHtmlNewsParser(HtmlNewsParser):
 
         for class_name in possible_class_names[:-1]:
             try:
-                return super().get_news_content(
+                return self._get_news_content(
                     url, "div", {"class": class_name}, raise_error=True
                 )
             except AttributeError:
                 continue
 
         # The last one should not have to raise Attrubute errors, so handle it seperately.
-        return super().get_news_content(
+        return self._get_news_content(
             url, "div", {"class": possible_class_names[-1]}  # No 'raise_error=True' here
         )
 
@@ -300,7 +325,7 @@ class CnaHtmlNewsParser(HtmlNewsParser):
     """
     source_base_urls = ['cna.com.tw']
 
-    def get_news_content(self, url):
+    def get_news_content_from_url(self, url):
         """Get news content from the news link.
 
         Args:
@@ -310,7 +335,7 @@ class CnaHtmlNewsParser(HtmlNewsParser):
             str: News content of the local news.
 
         """
-        return super().get_news_content(url, "div", {"class": "article_box"})
+        return self._get_news_content(url, "div", {"class": "article_box"})
 
 
 class UdnHtmlNewsParser(HtmlNewsParser):
@@ -322,7 +347,7 @@ class UdnHtmlNewsParser(HtmlNewsParser):
     """
     source_base_urls = ['udn.com']
 
-    def get_news_content(self, url):
+    def get_news_content_from_url(self, url):
         """Get news content from the news link.
 
         Args:
@@ -332,7 +357,7 @@ class UdnHtmlNewsParser(HtmlNewsParser):
             str: News content of the local news.
 
         """
-        return super().get_news_content(url, "div", {"id": "story_body_content"})
+        return self._get_news_content(url, "div", {"id": "story_body_content"})
 
 
 class EtodayHtmlNewsParser(HtmlNewsParser):
@@ -344,7 +369,7 @@ class EtodayHtmlNewsParser(HtmlNewsParser):
     """
     source_base_urls = ['ettoday.net']
 
-    def get_news_content(self, url):
+    def get_news_content_from_url(self, url):
         """Get news content from the news link.
 
         Args:
@@ -354,35 +379,4 @@ class EtodayHtmlNewsParser(HtmlNewsParser):
             str: News content of the local news.
 
         """
-        return super().get_news_content(url, "div", {"class": "story"})
-
-
-if __name__ == '__main__':  # For test
-
-    print(parsers_registry)
-
-    print('##########################')
-
-    scraper_utils.setup_logger('error_log', to_console=True)
-    parser = LtnHtmlNewsParser()
-    content = parser.get_news_content('http://news.ltn.com.tw/news/society/breakingnews/2346006')
-    print(content)
-    print()
-    content = parser.get_news_content('http://ent.ltn.com.tw/news/breakingnews/2345256')
-    print(content)
-    print()
-
-    parser = CnaHtmlNewsParser()
-    content = parser.get_news_content('http://www.cna.com.tw/news/afe/201802210255-1.aspx')
-    print(content)
-    print()
-
-    parser = UdnHtmlNewsParser()
-    content = parser.get_news_content('https://udn.com/news/story/6811/2992548')
-    print(content)
-    print()
-
-    parser = EtodayHtmlNewsParser()
-    content = parser.get_news_content('https://www.ettoday.net/news/20180221/1117010.htm')
-    print(content)
-    print()
+        return self._get_news_content(url, "div", {"class": "story"})

@@ -1,37 +1,43 @@
 """RSS news sources are written as code in this module.
 
 Attributes:
-    news_source_registry (dict): Registry of news sources.
+    _NEWS_SOURCE_REGISTRY (dict): Registry of news sources.
         <Key>: Name of the class.
         <Value>: The news source class.
 
         When writing a class that inherits the base class ``NewsSource``,
-        it is registered in ``news_source_registry`` automatically.
-
-        This can be imported by other modules to acquire news sources
-        that are currently supported.
+        it is registered in ``_NEWS_SOURCE_REGISTRY`` automatically.
 
 """
 # Local modules
 import scraper_utils
 import rss_feed_parsers
 
+_NEWS_SOURCE_REGISTRY = {}
 
-news_source_registry = {}
+
+def get_news_source_registry():
+    """Get registered news source classes.
+
+    Returns:
+        dict: ``_NEWS_SOURCE_REGISTRY``
+
+    """
+    return _NEWS_SOURCE_REGISTRY
 
 
 def _register_news_source(cls):
-    global news_source_registry
-    news_source_registry[cls.__name__] = cls
+    # pytlint will complain if I add "global _NEWS_SOURCE_REGISTRY" here.
+    _NEWS_SOURCE_REGISTRY[cls.__name__] = cls
 
 
 class NewsMeta(type):
     """Meta class for ``NewsSource`` to register subclasses.
 
-    To register classes except the base class to ``news_source_registry``.
+    To register classes except the base class to ``_NEWS_SOURCE_REGISTRY``.
     """
-    def __new__(meta, name, bases, class_dict):
-        cls = type.__new__(meta, name, bases, class_dict)
+    def __new__(mcs, name, bases, class_dict):
+        cls = type.__new__(mcs, name, bases, class_dict)
 
         # Should not register the abstract base class (NewsSource)
         if bases != (object,):
@@ -43,7 +49,7 @@ class NewsMeta(type):
 class NewsSource(object, metaclass=NewsMeta):
     """Base class for news sources.
 
-    Subclasses of this class are registered to ``news_source_registry``.
+    Subclasses of this class are registered to ``_NEWS_SOURCE_REGISTRY``.
     Note that this class can not be instanciated.
 
     """
@@ -51,6 +57,13 @@ class NewsSource(object, metaclass=NewsMeta):
     def __init__(self):
         msg = "Do not instantiate class '%s'!" % self.__class__.__name__
         scraper_utils.log_warning(msg, is_error=True)
+
+        # To make pylint happy
+        self.base_url = None
+        self.categories = None
+        self.rss_map = {}
+        self.feed_parser = None
+
         raise NotImplementedError(msg)
 
     def get_raw_feed_object(self, category):
@@ -67,7 +80,7 @@ class NewsSource(object, metaclass=NewsMeta):
             https://pythonhosted.org/feedparser/introduction.html
 
         """
-        rss_url = self._get_rss_url(category)
+        rss_url = self.get_rss_url(category)
 
         # This will get RSS content from web.
         raw_feed = rss_feed_parsers.get_raw_feed_obj(rss_url)
@@ -96,10 +109,12 @@ class NewsSource(object, metaclass=NewsMeta):
         """
         return self.feed_parser.parse_feed(raw_feed, category)
 
-    def _get_rss_url(self, category):
+    def get_rss_url(self, category):
+        """Get the link of a RSS feed specified by ``category``.
+        """
         return self.rss_map[category]
 
-    def _add_rss_link_for_strange_format_ones(self, rss_map_to_add):
+    def _add_weird_form_rss_links(self, rss_map_to_add):
         self.categories.extend(key for key in rss_map_to_add.keys())
         self.rss_map.update(rss_map_to_add)
 
@@ -129,15 +144,17 @@ class GoogleNews(NewsSource):
         params = '?ned=zh-tw_tw&hl=zh-tw&gl=TW'
 
         self.rss_map = {category: self.base_url + category + params for category in self.categories}
-        self._add_rss_link_for_strange_format_ones()
+        self._add_other_rss_sources()
         self.feed_parser = rss_feed_parsers.GoogleFeedParser
 
-    def _add_rss_link_for_strange_format_ones(self):
+    def _add_other_rss_sources(self):
+        """Add RSS links that does not follow the general rules.
+        """
 
         other_rss_map = {
             'Taiwan': self.base_url + 'NATION.zh-TW_tw/%E5%8F%B0%E7%81%A3?ned=tw&hl=zh-tw&gl=TW',
         }
-        super()._add_rss_link_for_strange_format_ones(other_rss_map)
+        super()._add_weird_form_rss_links(other_rss_map)
 
 
 class YahooNews(NewsSource):
@@ -165,7 +182,7 @@ class YahooNews(NewsSource):
     def _add_stock_rss_links(self):
         base_url = 'https://tw.stock.yahoo.com/rss/url/d/e/'
         stock_rss_map = {
-            'N3': base_url + 'N2.html',
+            'N2': base_url + 'N2.html',
             'N3': base_url + 'N3.html',
             'N4': base_url + 'N4.html',
             'N7': base_url + 'N7.html',
@@ -175,35 +192,4 @@ class YahooNews(NewsSource):
             'R4': base_url + 'R4.html',
             'R6': base_url + 'R6.html',
         }
-        self._add_rss_link_for_strange_format_ones(stock_rss_map)
-
-
-if __name__ == '__main__':  # For test
-
-    print(news_source_registry)
-
-    google_news = GoogleNews()
-    print(google_news.get_feed_object('WORLD'))
-
-    entries = google_news.get_feed_object('WORLD').entries
-    for i in range(2):
-        entry = entries[i]
-        print('-' * 10)
-        print(entry.title)
-        print(entry.description)
-        print(entry.link)
-        print(entry.published_time)
-        print('-' * 10)
-
-    yahoo_news = YahooNews()
-    print(yahoo_news.get_feed_object('politics'))
-
-    entries = yahoo_news.get_feed_object('politics').entries
-    for i in range(2):
-        entry = entries[i]
-        print('-' * 10)
-        print(entry.title)
-        print(entry.description)
-        print(entry.link)
-        print(entry.published_time)
-        print('-' * 10)
+        self._add_weird_form_rss_links(stock_rss_map)

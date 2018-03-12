@@ -85,7 +85,7 @@ class NewsDatabaseAPI(object):
 
         return rules_map
 
-    def remove_scraping_rules_and_relations(self):
+    def remove_all_rules_and_relations(self):
         """Remove all scraping rules and relationship with NewsData from DB.
         """
         # delete relationships
@@ -170,7 +170,7 @@ class NewsDatabaseAPI(object):
             news_id = self._get_id_field("newsdata", url=news.link)
             rule_id = self._get_id_field("scrapingrule", name=rule.name)
             score = news.rule_score_map[rule]
-            self._setup_news_rule_relationship(news_id, rule_id, score)
+            self.setup_news_rule_relationship(news_id, rule_id, score)
 
     def _get_keywords_info(self):
         keywords_query = (
@@ -190,8 +190,9 @@ class NewsDatabaseAPI(object):
         )
         return self.conn.execute_sql_command(tags_query)
 
-    def _setup_news_rule_relationship(self, news_id, rule_id, score):
-
+    def setup_news_rule_relationship(self, news_id, rule_id, score):
+        """Set up score and relationship between a news and a rule.
+        """
         self._insert_data_into_table(
             "newsdata_rules",
             newsdata_id=news_id,
@@ -254,10 +255,9 @@ class NewsDatabaseAPI(object):
         try:
             table_name = self._add_table_prefix(table_name)
             self.conn.insert_values_into_table(table_name, kwargs)
-        except IntegrityError as e:
-            if 'duplicate key value violates unique constraint' in str(e):
-                logging.debug(str(e))
-                pass
+        except IntegrityError as err:
+            if 'duplicate key value violates unique constraint' in str(err):
+                logging.debug(str(err))
             else:
                 raise
 
@@ -266,4 +266,4 @@ class NewsDatabaseAPI(object):
         self.conn.update_table(table_name, args_map, conditions)
 
     def _add_table_prefix(self, table_name):
-        return self.__class__._table_prefix + table_name
+        return self._table_prefix + table_name

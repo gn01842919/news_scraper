@@ -5,9 +5,6 @@ Attributes:
     OPTIONAL_ATTRIBUTES (tuple(str)): Attributes that are optional.
 
 """
-
-# Standard library
-import json
 # Local modules
 import scraper_utils
 from scraper_models import ScrapingRule
@@ -35,7 +32,7 @@ def get_rules_from_file(filename):
         ScrapingRuleFormatError: If a rule has invalid format.
 
     """
-    configs = _read_json_from_file(filename)
+    configs = scraper_utils.read_json_from_file(filename)
     name_set = set()
     for config in configs:
         name, included_kw, excluded_kw, tags = _get_attributes_from_config(config)
@@ -63,10 +60,10 @@ def _get_attributes_from_config(config):
 
 def _get_attribute(config, attr_name, expected_type):
     try:
-        rv = config[attr_name]
+        ret = config[attr_name]
 
-    except KeyError as e:
-        attr_err = e.args[0]
+    except KeyError as err:
+        attr_err = err.args[0]
 
         if attr_err in OPTIONAL_ATTRIBUTES:
             return list()
@@ -76,44 +73,13 @@ def _get_attribute(config, attr_name, expected_type):
 
         else:
             raise ScrapingRuleFormatError(
-                "Attribute '%s' in the input file is unknown." % e.args[0]
+                "Attribute '%s' in the input file is unknown." % err.args[0]
             )
 
-    if not isinstance(rv, expected_type):
+    if not isinstance(ret, expected_type):
         raise ScrapingRuleFormatError(
             "'%s' attribute must be instance of %s."
             % (attr_name, expected_type)
         )
 
-    return rv
-
-
-def _read_json_from_file(filename):
-    try:
-        with open(filename, 'r') as f:
-            return json.loads(f.read())
-    except FileNotFoundError as e:
-        # Create an empty file
-        scraper_utils.log_warning("File '%s' not found." % filename)
-        return {}
-    except json.decoder.JSONDecodeError as e:
-        msg = "Fail to parse the content of file '%s' as JSON. " % filename
-        scraper_utils.log_warning(msg)
-        return {}
-
-
-if __name__ == '__main__':  # For test
-    import logging
-
-    log_format = "[%(levelname)s] %(message)s\n"
-    scraper_utils.setup_logger(
-        'error_log',
-        level=logging.WARNING,
-        logfile='error.log',
-        to_console=False,
-        log_format=log_format
-    )
-    logging.basicConfig(level=logging.INFO, format=log_format)
-
-    rules_from_file = get_rules_from_file('rule.json')
-    print(tuple(rules_from_file))
+    return ret
