@@ -20,10 +20,10 @@ def get_news_source_registry():
     """Get registered news source classes.
 
     Returns:
-        dict: ``_NEWS_SOURCE_REGISTRY``
+        dict: A copy of ``_NEWS_SOURCE_REGISTRY``.
 
     """
-    return _NEWS_SOURCE_REGISTRY
+    return _NEWS_SOURCE_REGISTRY.copy()
 
 
 def _register_news_source(cls):

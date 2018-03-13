@@ -73,10 +73,10 @@ def get_local_parser_registry():
     """Get the dict mapping domain names to local news parsers.
 
     Returns:
-        dict: ``_PARSER_REGISTRY``
+        dict: A copy of ``_PARSER_REGISTRY``.
 
     """
-    return _PARSER_REGISTRY
+    return _PARSER_REGISTRY.copy()
 
 
 def _register_local_source(name, cls):
