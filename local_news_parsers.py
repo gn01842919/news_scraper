@@ -83,25 +83,6 @@ def _register_local_source(name, cls):
     _PARSER_REGISTRY[name] = cls
 
 
-def _get_local_news_sources(filename):
-    """Read local news source list from file.
-
-    Returns:
-        dict: A JSON config.
-    """
-    try:
-        with open(filename, 'r') as infile:
-            return json.loads(infile.read())
-    except FileNotFoundError:
-        # Create an empty file
-        open(filename, 'a').close()
-        return {}
-    except json.decoder.JSONDecodeError:
-        msg = "Fail to parse the content of file '%s' as JSON. " % filename
-        scraper_utils.log_warning(msg)
-        return {}
-
-
 class LocalNewsMeta(type):
     """Meta class for ``HtmlNewsParser`` to register subclasses.
 
