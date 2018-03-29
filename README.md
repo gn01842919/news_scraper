@@ -61,3 +61,5 @@
 - 應能接受多個 rule 檔案。
 
 - 可由 news_scraper 建立所需的資料庫結構，讓此專案不必依賴 [news_scraper](https://github.com/gn01842919/news_scraper) 。
+
+- 多久要刪除一次舊新聞? 要刪除幾天內的新聞? (目前是三天清空一次資料庫)
