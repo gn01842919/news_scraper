@@ -1,7 +1,7 @@
 # news_scrapper
 從網路抓取新聞，篩選出感興趣的新聞，並存入資料庫中。需搭配另一專案 [db_operation_api](https://github.com/gn01842919/db_operation_api)，並建議搭配專案 [news_scraper](https://github.com/gn01842919/news_scraper) 使用。
 
-程式碼細節請參閱 [文件](http://nas17d598.myqnapcloud.com/doc/)
+程式碼細節請參閱 [**文件**](http://nas17d598.myqnapcloud.com/doc/)
 
 
 ## 主要功能:
