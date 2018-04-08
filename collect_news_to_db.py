@@ -14,7 +14,7 @@ from urllib.error import HTTPError, URLError
 import scraper_utils
 from settings import SCRAPER_CONFIG, DATABASE_CONFIG
 from db_news_api import NewsDatabaseAPI
-from db_operation_api.mydb import PostgreSqlDB
+from db_operation_api.mydb import get_database
 from local_news_parsers import update_local_news_sources_list
 from news_sources import get_news_source_registry
 from scraping_rules_reader import get_rules_from_file
@@ -51,7 +51,7 @@ def scrape_news_and_save_to_db():
     # Get scraping rules
     rules_from_file = tuple(get_rules_from_file(rule_file))
 
-    with PostgreSqlDB(**DATABASE_CONFIG) as conn:
+    with get_database(DATABASE_CONFIG) as conn:
         db_api = NewsDatabaseAPI(conn)
 
         rules_from_db = db_api.get_scraping_rules()

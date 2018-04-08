@@ -1,7 +1,7 @@
 """This module provides tools to CRUD news_data and scraping_rules in the DB.
 
 Example:
-    with scraper_models.PostgreSqlDB(**db_config) as conn:
+    with scraper_models.get_database(DATABASE_CONFIG) as conn:
         db_api = NewsDatabaseAPI(conn, table_prefix="my_focus_news")
         rules = db_api.get_scraping_rules()
         print(rules)
@@ -21,7 +21,7 @@ class NewsDatabaseAPI(object):
     """This class provides APIs to manipulate models in the database.
 
     Args:
-        conn (db_operation_api.mydb.PostgreSqlDB): A database connection.
+        conn (db_operation_api.mydb.MyDB): A database connection.
 
     """
     _table_prefix = "shownews_"
