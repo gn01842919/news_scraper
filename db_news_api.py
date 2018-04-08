@@ -1,10 +1,12 @@
 """This module provides tools to CRUD news_data and scraping_rules in the DB.
 
 Example:
-    with scraper_models.get_database(DATABASE_CONFIG) as conn:
-        db_api = NewsDatabaseAPI(conn, table_prefix="my_focus_news")
-        rules = db_api.get_scraping_rules()
-        print(rules)
+    .. code-block:: python
+
+        with scraper_models.get_database(DATABASE_CONFIG) as conn:
+            db_api = NewsDatabaseAPI(conn, table_prefix="my_focus_news")
+            rules = db_api.get_scraping_rules()
+            print(rules)
 
 """
 import logging
@@ -37,7 +39,7 @@ class NewsDatabaseAPI(object):
                 whether each news is of interest.
 
         Returns:
-            dict: A dict that maps id to a news
+            dict: A dict that maps id to a news.
                 <Key>: id filed of a news in the database.
                 <Value>: An instance of ``NewsRSSEntry``.
 

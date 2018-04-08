@@ -106,7 +106,7 @@ class HtmlNewsParser(object, metaclass=LocalNewsMeta):
     """Base class for local news parsers.
 
     Subclasses of this class are registered to ``_PARSER_REGISTRY``.
-    Note that this class can not be instanciated.
+    Note that this class can not be instanciated by metaclass ``LocalNewsMeta``.
 
     Attributes:
         source_base_urls (list(str)): Domain names for the local news source.
@@ -263,7 +263,7 @@ class DefaultHtmlNewsParser(HtmlNewsParser):
 class LtnHtmlNewsParser(HtmlNewsParser):
     """Parser for the local news source "自由時報 (LTN)".
 
-    Attribute:
+    Attributes:
         source_base_urls (list(str)): Posible domain names for this local news source.
 
     """
@@ -300,7 +300,7 @@ class LtnHtmlNewsParser(HtmlNewsParser):
 class CnaHtmlNewsParser(HtmlNewsParser):
     """Parser for the local news source "中央通訊社 (CNA)".
 
-    Attribute:
+    Attributes:
         source_base_urls (list(str)): Posible domain names for this local news source.
 
     """
@@ -322,7 +322,7 @@ class CnaHtmlNewsParser(HtmlNewsParser):
 class UdnHtmlNewsParser(HtmlNewsParser):
     """Parser for the local news source "聯合新聞網 (UDN)".
 
-    Attribute:
+    Attributes:
         source_base_urls (list(str)): Posible domain names for this local news source.
 
     """
@@ -344,7 +344,7 @@ class UdnHtmlNewsParser(HtmlNewsParser):
 class EtodayHtmlNewsParser(HtmlNewsParser):
     """Parser for the local news source "ETtoday 新聞雲".
 
-    Attribute:
+    Attributes:
         source_base_urls (list(str)): Posible domain names for this local news source.
 
     """

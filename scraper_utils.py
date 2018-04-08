@@ -128,6 +128,7 @@ class NewsScrapperError(RuntimeError):
 
     Error messages are logged to ``logging.getLogger('error_log')``
         with the ``logging.error()`` method.
+
     If the logger is not set, write msg to both stdout and a file named 'error.log'.
 
     Attributes:

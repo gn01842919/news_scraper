@@ -1,8 +1,12 @@
 """Remove all data from the database created by ``news_scraper``".
 
 Example:
-    This module can be executed directly::
+    This module can be executed directly:
+
+    .. code-block:: console
+
         $ python remove_all_data_from_db.py
+
 """
 # Local modules
 from db_news_api import NewsDatabaseAPI

@@ -1,7 +1,10 @@
 """This module collects news, filter them by rules, and store them to DB.
 
 Example:
-    This module can be executed directly::
+    This module can be executed directly:
+
+    .. code-block:: console
+
         $ python collect_news_to_db.py
 
 """

@@ -3,7 +3,10 @@
 If execute directly, will collect news immediately, and then periodically collects news.
 
 Example:
-    This module can be executed directly::
+    This module can be executed directly:
+
+    .. code-block:: console
+
         $ python schedule.py
 
 """
